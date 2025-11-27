@@ -52,7 +52,7 @@ npm start
 - `GET /api/platform-time/:platformId` - 특정 플랫폼의 서버 시간 가져오기
 
   - 예: `/api/platform-time/melon`
-  - 지원 플랫폼: `melon`, `interpark`, `naver`, `yes24`
+  - 지원 플랫폼: `melon`, `interpark`, `yes24`
 
 - `GET /api/platform-times` - 모든 플랫폼의 서버 시간을 한 번에 가져오기
 

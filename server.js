@@ -92,7 +92,7 @@ app.get('/api/platform-time/:platformId', async (req, res) => {
             });
         }
 
-        // UTC 시간을 파싱하고 KST로 변환
+        // UTC 시간을 파싱
         const serverTimeUTC = new Date(result.dateHeader).getTime();
         if (isNaN(serverTimeUTC) || serverTimeUTC <= 0) {
             console.error(`[${platformId}] Invalid date header:`, result.dateHeader);
@@ -102,17 +102,48 @@ app.get('/api/platform-time/:platformId', async (req, res) => {
             });
         }
 
-        // KST 변환 (UTC + 9시간)
-        const serverTimeKST = serverTimeUTC + (9 * 60 * 60 * 1000);
+        // 현재 서버 시간 (KST)
+        const currentServerTime = Date.now();
+        const currentServerTimeKST = new Date(currentServerTime);
+        
+        // HTTP Date 헤더는 표준상 UTC이지만, 일부 서버가 이미 KST로 반환할 수 있음
+        // 두 가지 경우를 모두 테스트
+        const serverTimeAsUTC = serverTimeUTC + (9 * 60 * 60 * 1000); // UTC로 가정하고 +9시간
+        const serverTimeAsKST = serverTimeUTC; // 이미 KST로 가정
+        
+        // 현재 시간과 비교하여 더 가까운 값을 선택
+        const diffAsUTC = Math.abs(serverTimeAsUTC - currentServerTime);
+        const diffAsKST = Math.abs(serverTimeAsKST - currentServerTime);
+        
+        // 더 가까운 시간을 사용 (차이가 1시간 이내면 이미 KST로 간주)
+        let serverTimeKST;
+        if (diffAsKST < diffAsUTC && diffAsKST < 3600000) { // 1시간 이내 차이
+            // 이미 KST로 반환되고 있음
+            serverTimeKST = serverTimeAsKST;
+        } else {
+            // UTC로 반환되고 있음 (표준)
+            serverTimeKST = serverTimeAsUTC;
+        }
         
         // RTT 보정 (왕복 시간의 절반을 더함)
         const correctedTime = serverTimeKST + (roundTripTime / 2);
+        
+        // 서버 시간과 현재 시간 차이 계산
+        const timeDiff = correctedTime - currentServerTime;
+        const timeDiffSeconds = (timeDiff / 1000).toFixed(3);
 
         console.log(`[${platformId}] Server time fetched:`, {
             dateHeader: result.dateHeader,
             serverTimeUTC: new Date(serverTimeUTC).toISOString(),
+            serverTimeAsUTC: new Date(serverTimeAsUTC).toISOString(),
+            serverTimeAsKST: new Date(serverTimeAsKST).toISOString(),
             serverTimeKST: new Date(serverTimeKST).toISOString(),
             correctedTime: new Date(correctedTime).toISOString(),
+            currentServerTime: currentServerTimeKST.toISOString(),
+            timeDifference: `${timeDiffSeconds}초 (${timeDiff >= 0 ? '+' : ''}${timeDiffSeconds}초)`,
+            diffAsUTC: (diffAsUTC / 1000).toFixed(3) + '초',
+            diffAsKST: (diffAsKST / 1000).toFixed(3) + '초',
+            usingKST: diffAsKST < diffAsUTC && diffAsKST < 3600000,
             roundTripTime: roundTripTime + 'ms'
         });
 

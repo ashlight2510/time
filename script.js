@@ -56,7 +56,6 @@ function saveUserMeasuredOffset(platformId, offset) {
 const platformServerTimes = {
     melon: null,
     interpark: null,
-    naver: null,
     yes24: null
 };
 
@@ -64,15 +63,13 @@ const platformServerTimes = {
 const platformSyncTimes = {
     melon: 0,
     interpark: 0,
-    naver: 0,
     yes24: 0
 };
 
 // 티켓팅 사이트 URL
 const platformUrls = {
     melon: 'https://ticket.melon.com',
-    interpark: 'https://tickets.interpark.com',
-    naver: 'https://ticket.book.naver.com', // 네이버 티켓팅 정확한 URL
+    interpark: 'https://nol.interpark.com',
     yes24: 'https://ticket.yes24.com'
 };
 
@@ -1298,7 +1295,7 @@ function updateServerTimeDisplay() {
     if (currentTimeSource === 'server') {
         displayTime = now + serverTimeOffset;
     } else if (currentTimeSource === 'melon' || currentTimeSource === 'interpark' || 
-               currentTimeSource === 'naver' || currentTimeSource === 'yes24') {
+               currentTimeSource === 'yes24') {
         const platformServerTime = platformServerTimes[currentTimeSource];
         const syncTime = platformSyncTimes[currentTimeSource];
         const timeSinceSync = now - syncTime;
@@ -1353,7 +1350,6 @@ function updateTimeSourceTitle() {
         'server': '서버 시계 (KST)',
         'melon': '멜론 시계',
         'interpark': '인터파크 시계',
-        'naver': '네이버 시계',
         'yes24': '예스24 시계'
     };
     
@@ -1438,7 +1434,7 @@ async function fetchPlatformServerTime(platformId) {
 
 // 티켓팅 사이트 서버 시간 동기화
 async function syncPlatformServerTimes() {
-    const platforms = ['melon', 'interpark', 'naver', 'yes24'];
+    const platforms = ['melon', 'interpark', 'yes24'];
     const now = Date.now();
     
     // 병렬로 모든 플랫폼 서버 시간 가져오기 시도
@@ -1485,7 +1481,6 @@ function updatePlatformTimes() {
     const platforms = [
         { id: 'melon', offset: platformOffsets.melon },
         { id: 'interpark', offset: platformOffsets.interpark },
-        { id: 'naver', offset: platformOffsets.naver },
         { id: 'yes24', offset: platformOffsets.yes24 }
     ];
     
