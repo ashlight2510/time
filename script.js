@@ -74,6 +74,14 @@ const platformSyncTimes = {
     yes24: 0
 };
 
+// 백엔드 API 서버 상태 추적
+let backendServerStatus = {
+    isAvailable: true, // 백엔드 서버 사용 가능 여부
+    lastCheckTime: 0, // 마지막 상태 확인 시점
+    consecutiveFailures: 0, // 연속 실패 횟수
+    retryAfter: 0 // 재시도 대기 시간 (밀리초)
+};
+
 // 티켓팅 사이트 URL
 const platformUrls = {
     melon: 'https://ticket.melon.com',
@@ -1346,6 +1354,8 @@ function changeTimeSource() {
         currentTimeSource = timeSourceSelect.value;
         localStorage.setItem('timeSource', currentTimeSource);
         updateTimeSourceTitle();
+        // 시간 소스 변경 시 즉시 시간 업데이트
+        updateServerTimeDisplay();
     }
 }
 
@@ -1372,83 +1382,175 @@ function startPlatformTimeUpdate() {
     setInterval(updatePlatformTimes, 10);
 }
 
-// 티켓팅 사이트 서버 시간 가져오기 (백엔드 프록시 API 사용)
-async function fetchPlatformServerTime(platformId) {
-    // 백엔드 프록시 API 사용
+// 백엔드 API 서버 상태 확인
+async function checkBackendServerHealth() {
+    // 재시도 대기 중이면 스킵
+    if (Date.now() < backendServerStatus.retryAfter) {
+        return backendServerStatus.isAvailable;
+    }
+    
     try {
+        const healthUrl = API_BASE_URL 
+            ? `${API_BASE_URL}/api/health`
+            : `/api/health`;
+        
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         
-        // API URL 구성
-        const apiUrl = API_BASE_URL 
-            ? `${API_BASE_URL}/api/platform-time/${platformId}`
-            : `/api/platform-time/${platformId}`;
-        
-        const response = await fetch(apiUrl, {
+        const response = await fetch(healthUrl, {
             method: 'GET',
             cache: 'no-store',
-            signal: controller.signal,
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        if (response.ok) {
+            // 백엔드 서버 정상
+            backendServerStatus.isAvailable = true;
+            backendServerStatus.consecutiveFailures = 0;
+            backendServerStatus.lastCheckTime = Date.now();
+            backendServerStatus.retryAfter = 0;
+            return true;
+        } else {
+            throw new Error(`Health check failed: ${response.status}`);
         }
-        
-        const data = await response.json();
-        
-        if (data.serverTime && data.serverTime > 0) {
-            // 백엔드에서 이미 RTT 보정이 완료된 시간 반환
-            return data.serverTime;
-        }
-        
-        return null;
     } catch (error) {
-        // 백엔드 프록시 실패 시 fallback: 직접 요청 시도 (CORS 제한으로 실패할 가능성 높음)
-        const url = platformUrls[platformId];
-        if (!url) return null;
+        // 백엔드 서버 실패
+        backendServerStatus.consecutiveFailures++;
+        backendServerStatus.lastCheckTime = Date.now();
         
+        // 연속 실패 시 재시도 간격 증가 (지수 백오프)
+        const retryDelay = Math.min(60000, 5000 * Math.pow(2, backendServerStatus.consecutiveFailures - 1));
+        backendServerStatus.retryAfter = Date.now() + retryDelay;
+        
+        // 3회 이상 연속 실패 시 백엔드 서버 사용 불가로 표시
+        if (backendServerStatus.consecutiveFailures >= 3) {
+            backendServerStatus.isAvailable = false;
+            console.warn(`⚠️ 백엔드 서버 사용 불가 (연속 ${backendServerStatus.consecutiveFailures}회 실패). 기본 보정값 사용.`);
+        }
+        
+        return false;
+    }
+}
+
+// 티켓팅 사이트 서버 시간 가져오기 (백엔드 프록시 API 사용 + 안전한 Fallback)
+async function fetchPlatformServerTime(platformId) {
+    const url = platformUrls[platformId];
+    if (!url) return null;
+    
+    // 백엔드 서버가 사용 가능한 경우에만 시도
+    if (backendServerStatus.isAvailable || backendServerStatus.consecutiveFailures < 3) {
         try {
-            const startTime = performance.now();
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             
-            const response = await fetch(url, {
-                method: 'HEAD',
+            // API URL 구성
+            const apiUrl = API_BASE_URL 
+                ? `${API_BASE_URL}/api/platform-time/${platformId}`
+                : `/api/platform-time/${platformId}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'GET',
                 cache: 'no-store',
                 signal: controller.signal,
-                credentials: 'omit',
-                redirect: 'follow'
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
             
             clearTimeout(timeoutId);
-            const endTime = performance.now();
-            const roundTripTime = endTime - startTime;
             
-            const dateHeader = response.headers.get('Date') || response.headers.get('date');
-            if (dateHeader) {
-                const serverTimeUTC = new Date(dateHeader).getTime();
-                if (!isNaN(serverTimeUTC) && serverTimeUTC > 0) {
-                    const serverTimeKST = serverTimeUTC + (9 * 60 * 60 * 1000);
-                    return serverTimeKST + (roundTripTime / 2);
-                }
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
             }
-        } catch (fallbackError) {
-            // CORS 제한으로 실패 (예상된 상황)
+            
+            const data = await response.json();
+            
+            if (data.serverTime && data.serverTime > 0) {
+                // 백엔드 성공 시 상태 업데이트
+                if (!backendServerStatus.isAvailable) {
+                    backendServerStatus.isAvailable = true;
+                    backendServerStatus.consecutiveFailures = 0;
+                    backendServerStatus.retryAfter = 0;
+                    console.log('✅ 백엔드 서버 복구됨');
+                }
+                // 백엔드에서 이미 RTT 보정이 완료된 시간 반환
+                return data.serverTime;
+            }
+            
+            return null;
+        } catch (error) {
+            // 백엔드 실패 시 상태 업데이트
+            backendServerStatus.consecutiveFailures++;
+            const retryDelay = Math.min(60000, 5000 * Math.pow(2, backendServerStatus.consecutiveFailures - 1));
+            backendServerStatus.retryAfter = Date.now() + retryDelay;
+            
+            if (backendServerStatus.consecutiveFailures >= 3) {
+                backendServerStatus.isAvailable = false;
+                console.warn(`⚠️ 백엔드 API 실패 (${platformId}): ${error.message}. Fallback 모드로 전환.`);
+            }
+            
+            // Fallback으로 계속 진행
         }
-        
-        return null;
     }
+    
+    // Fallback 1: 클라이언트에서 직접 요청 시도 (CORS 제한으로 실패할 가능성 높음)
+    try {
+        const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(url, {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: controller.signal,
+            credentials: 'omit',
+            redirect: 'follow'
+        });
+        
+        clearTimeout(timeoutId);
+        const endTime = performance.now();
+        const roundTripTime = endTime - startTime;
+        
+        const dateHeader = response.headers.get('Date') || response.headers.get('date');
+        if (dateHeader) {
+            const serverTimeUTC = new Date(dateHeader).getTime();
+            if (!isNaN(serverTimeUTC) && serverTimeUTC > 0) {
+                // 시간대 자동 감지 (UTC vs KST)
+                const currentServerTime = Date.now();
+                const serverTimeAsUTC = serverTimeUTC + (9 * 60 * 60 * 1000);
+                const serverTimeAsKST = serverTimeUTC;
+                const diffAsUTC = Math.abs(serverTimeAsUTC - currentServerTime);
+                const diffAsKST = Math.abs(serverTimeAsKST - currentServerTime);
+                
+                const serverTimeKST = (diffAsKST < diffAsUTC && diffAsKST < 3600000) 
+                    ? serverTimeAsKST 
+                    : serverTimeAsUTC;
+                
+                console.log(`✅ ${platformId} 직접 측정 성공 (Fallback)`);
+                return serverTimeKST + (roundTripTime / 2);
+            }
+        }
+    } catch (fallbackError) {
+        // CORS 제한으로 실패 (예상된 상황)
+        // Fallback 2로 진행
+    }
+    
+    // Fallback 2: 기본 보정값 사용 (항상 사용 가능)
+    // null을 반환하면 updatePlatformTimes에서 기본 보정값을 사용함
+    return null;
 }
 
 // 티켓팅 사이트 서버 시간 동기화
 async function syncPlatformServerTimes() {
-    const platforms = ['melon', 'interpark', 'yes24'];
+    // 백엔드 서버 상태 확인 (주기적으로)
     const now = Date.now();
+    if (now - backendServerStatus.lastCheckTime > 30000) { // 30초마다 체크
+        await checkBackendServerHealth();
+    }
+    
+    const platforms = ['melon', 'interpark', 'yes24'];
     
     // 병렬로 모든 플랫폼 서버 시간 가져오기 시도
     const promises = platforms.map(async (platformId) => {
@@ -1468,21 +1570,26 @@ async function syncPlatformServerTimes() {
                 console.log(`✅ ${platformId} 서버 시간 측정 성공: ${measuredOffset.toFixed(3)}초 (KST 대비)`, {
                     serverTime: new Date(serverTime).toISOString(),
                     now: new Date(now).toISOString(),
-                    offset: (offset / 1000).toFixed(3) + '초'
+                    offset: (offset / 1000).toFixed(3) + '초',
+                    source: backendServerStatus.isAvailable ? '백엔드 API' : '직접 측정'
                 });
             } else {
-                // 실패 시 기본 보정값 사용
+                // 실패 시 기본 보정값 사용 (안전한 Fallback)
                 platformServerTimes[platformId] = null;
-                console.log(`❌ ${platformId} 서버 시간 측정 실패 (기본값 사용: ${platformOffsets[platformId]}초)`);
+                if (backendServerStatus.consecutiveFailures < 3) {
+                    console.log(`⚠️ ${platformId} 서버 시간 측정 실패 (기본값 사용: ${platformOffsets[platformId]}초)`);
+                }
             }
         } catch (error) {
             platformServerTimes[platformId] = null;
-            console.log(`❌ ${platformId} 서버 시간 측정 오류:`, error.message);
+            if (backendServerStatus.consecutiveFailures < 3) {
+                console.log(`❌ ${platformId} 서버 시간 측정 오류:`, error.message);
+            }
         }
     });
     
     await Promise.allSettled(promises);
-    // 동기화 후 플랫폼 시간 업데이트 (실제 측정값이 있으면 반영)
+    // 동기화 후 플랫폼 시간 업데이트 (실제 측정값이 있으면 반영, 없으면 기본 보정값 사용)
     updatePlatformTimes();
 }
 
