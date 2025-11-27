@@ -1,3 +1,11 @@
+// API 서버 URL 설정
+// 로컬 개발: 'http://localhost:3000'
+// 프로덕션: 'https://your-api-server.onrender.com' (Render 등에 배포한 API 서버 URL)
+const API_BASE_URL = window.API_BASE_URL || 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:3000' 
+        : ''); // 프로덕션에서는 빈 문자열 (상대 경로 사용) 또는 절대 URL 설정
+
 // 서버 시간 관련 전역 변수
 let serverTimeOffset = 0; // 서버 시간과 클라이언트 시간의 차이 (밀리초)
 let serverTimeSyncTime = 0; // 마지막 동기화 시점의 클라이언트 시간
@@ -1371,7 +1379,12 @@ async function fetchPlatformServerTime(platformId) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        const response = await fetch(`/api/platform-time/${platformId}`, {
+        // API URL 구성
+        const apiUrl = API_BASE_URL 
+            ? `${API_BASE_URL}/api/platform-time/${platformId}`
+            : `/api/platform-time/${platformId}`;
+        
+        const response = await fetch(apiUrl, {
             method: 'GET',
             cache: 'no-store',
             signal: controller.signal,

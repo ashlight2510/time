@@ -3,6 +3,9 @@ node_modules/
 package-lock.json
 yarn-error.log
 
+# API 서버 (별도 배포)
+api/node_modules/
+
 # Environment variables
 .env
 .env.local

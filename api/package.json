@@ -1,0 +1,25 @@
+{
+  "name": "ticketing-time-api",
+  "version": "1.0.0",
+  "description": "티켓팅 플랫폼 서버 시간 API 서버",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ticketing",
+    "server-time",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
+
