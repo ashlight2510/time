@@ -1,0 +1,39 @@
+# GitHub Pages 자동 배포 (선택사항)
+# 이 워크플로우는 GitHub Pages에 자동으로 배포합니다.
+# Settings → Pages에서 직접 설정해도 됩니다.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: "."
+          exclude-paths: |
+            node_modules/
+            api/
+            server.js
+            .git/
+            .github/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
