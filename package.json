@@ -2,10 +2,11 @@
   "name": "d-day-calculator",
   "version": "1.0.0",
   "description": "D-day 계산기 웹 애플리케이션",
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "serve -s . -l 3000",
-    "dev": "serve -s . -l 3000"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "serve -s . -l 3000"
   },
   "keywords": [
     "d-day",
@@ -14,6 +15,10 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
   "devDependencies": {
     "serve": "^14.2.1"
   },

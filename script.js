@@ -12,7 +12,6 @@ const platformOffsets = {
     server: 0,
     melon: 0.2,
     interpark: -0.1,
-    naver: 0.05,
     yes24: 0.1
 };
 
@@ -73,7 +72,7 @@ const platformSyncTimes = {
 const platformUrls = {
     melon: 'https://ticket.melon.com',
     interpark: 'https://tickets.interpark.com',
-    naver: 'https://ticket.naver.com', // URL 수정
+    naver: 'https://ticket.book.naver.com', // 네이버 티켓팅 정확한 URL
     yes24: 'https://ticket.yes24.com'
 };
 
@@ -1369,49 +1368,70 @@ function startPlatformTimeUpdate() {
     setInterval(updatePlatformTimes, 10);
 }
 
-// 티켓팅 사이트 서버 시간 가져오기 (HEAD 요청 + Date 헤더)
+// 티켓팅 사이트 서버 시간 가져오기 (백엔드 프록시 API 사용)
 async function fetchPlatformServerTime(platformId) {
-    const url = platformUrls[platformId];
-    if (!url) return null;
-    
+    // 백엔드 프록시 API 사용
     try {
-        const startTime = performance.now();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        // HEAD 요청으로 Date 헤더 가져오기
-        const response = await fetch(url, {
-            method: 'HEAD',
+        const response = await fetch(`/api/platform-time/${platformId}`, {
+            method: 'GET',
             cache: 'no-store',
             signal: controller.signal,
-            credentials: 'omit'
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
         clearTimeout(timeoutId);
-        const endTime = performance.now();
-        const roundTripTime = endTime - startTime;
         
-        const dateHeader = response.headers.get('Date');
-        if (!dateHeader) {
-            return null;
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
         }
         
-        // UTC 시간을 파싱
-        const serverTimeUTC = new Date(dateHeader).getTime();
-        if (isNaN(serverTimeUTC) || serverTimeUTC <= 0) {
-            return null;
+        const data = await response.json();
+        
+        if (data.serverTime && data.serverTime > 0) {
+            // 백엔드에서 이미 RTT 보정이 완료된 시간 반환
+            return data.serverTime;
         }
         
-        // KST로 변환 (UTC + 9시간)
-        const serverTimeKST = serverTimeUTC + (9 * 60 * 60 * 1000);
-        
-        // RTT 보정 (왕복 시간의 절반을 더함)
-        const correctedTime = serverTimeKST + (roundTripTime / 2);
-        
-        return correctedTime;
+        return null;
     } catch (error) {
-        // CORS 오류나 네트워크 오류는 조용히 처리 (정상적인 상황)
-        // CORS 제한, 네트워크 에러, DNS 에러 등은 예상된 실패이므로 로그 출력하지 않음
+        // 백엔드 프록시 실패 시 fallback: 직접 요청 시도 (CORS 제한으로 실패할 가능성 높음)
+        const url = platformUrls[platformId];
+        if (!url) return null;
+        
+        try {
+            const startTime = performance.now();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            const response = await fetch(url, {
+                method: 'HEAD',
+                cache: 'no-store',
+                signal: controller.signal,
+                credentials: 'omit',
+                redirect: 'follow'
+            });
+            
+            clearTimeout(timeoutId);
+            const endTime = performance.now();
+            const roundTripTime = endTime - startTime;
+            
+            const dateHeader = response.headers.get('Date') || response.headers.get('date');
+            if (dateHeader) {
+                const serverTimeUTC = new Date(dateHeader).getTime();
+                if (!isNaN(serverTimeUTC) && serverTimeUTC > 0) {
+                    const serverTimeKST = serverTimeUTC + (9 * 60 * 60 * 1000);
+                    return serverTimeKST + (roundTripTime / 2);
+                }
+            }
+        } catch (fallbackError) {
+            // CORS 제한으로 실패 (예상된 상황)
+        }
+        
         return null;
     }
 }
@@ -1426,15 +1446,29 @@ async function syncPlatformServerTimes() {
         try {
             const serverTime = await fetchPlatformServerTime(platformId);
             if (serverTime && serverTime > 0) {
-                // 클라이언트 시간 기준으로 오프셋 저장
-                platformServerTimes[platformId] = serverTime - now;
+                // 서버에서 반환한 serverTime은 이미 KST로 변환된 절대 시간(타임스탬프)
+                // 클라이언트 현재 시간과의 차이를 오프셋으로 저장
+                const offset = serverTime - now;
+                platformServerTimes[platformId] = offset;
                 platformSyncTimes[platformId] = now;
+                
+                // 측정 성공 로그 (디버깅용)
+                // KST 서버 시간과 비교하여 오프셋 계산
+                const kstTime = now + serverTimeOffset;
+                const measuredOffset = (serverTime - kstTime) / 1000;
+                console.log(`✅ ${platformId} 서버 시간 측정 성공: ${measuredOffset.toFixed(3)}초 (KST 대비)`, {
+                    serverTime: new Date(serverTime).toISOString(),
+                    now: new Date(now).toISOString(),
+                    offset: (offset / 1000).toFixed(3) + '초'
+                });
             } else {
                 // 실패 시 기본 보정값 사용
                 platformServerTimes[platformId] = null;
+                console.log(`❌ ${platformId} 서버 시간 측정 실패 (기본값 사용: ${platformOffsets[platformId]}초)`);
             }
         } catch (error) {
             platformServerTimes[platformId] = null;
+            console.log(`❌ ${platformId} 서버 시간 측정 오류:`, error.message);
         }
     });
     
@@ -1503,9 +1537,9 @@ function updatePlatformTimes() {
             offsetEl.className = `platform-offset ${offsetValue >= 0 ? 'positive' : 'negative'} ${isMeasured ? 'measured' : 'default'}`;
             // 기본값일 경우 툴팁으로 안내
             if (!isMeasured) {
-                offsetEl.title = '기본 보정값 (실제 측정 불가: CORS 제한)';
+                offsetEl.title = `기본 보정값: ${platform.offset}초 (실제 측정 불가: CORS 제한)`;
             } else {
-                offsetEl.title = '실제 측정값';
+                offsetEl.title = `실제 측정값: ${offsetValue.toFixed(3)}초 (${Math.floor(timeSinceSync / 1000)}초 전 측정)`;
             }
         }
     });
