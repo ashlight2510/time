@@ -9,9 +9,7 @@
     />
 
     <!-- 기본 SEO 메타 태그 -->
-    <title>
-      티켓팅용 서버 시계 | 밀리초 단위 정확도 서버시간 - Ashlight Server Time
-    </title>
+    <title>예매는타이밍 | 티켓팅용 밀리초 단위 정확도 서버시계</title>
     <meta
       name="description"
       content="티켓팅용 공식 서버시계. 한국 표준시(KST) 밀리초 단위 정확도, 오차 보정, 카운트다운, 티켓팅 사이트별 시간 비교, 화면 고정 모드 제공. 멜론, 인터파크, 네이버 티켓팅 성공률을 높이세요."
@@ -29,25 +27,31 @@
     <meta property="og:type" content="website" />
     <meta
       property="og:title"
-      content="티켓팅용 서버 시계 | 밀리초 단위 정확도 서버시간 - Ashlight Server Time"
+      content="예매는타이밍 | 티켓팅용 밀리초 단위 정확도 서버시계"
     />
     <meta
       property="og:description"
       content="티켓팅용 공식 서버시계. 한국 표준시(KST) 밀리초 단위 정확도, 오차 보정, 카운트다운, 티켓팅 사이트별 시간 비교 제공."
     />
-    <meta property="og:image" content="https://time.ashlight.store/favicon.svg" />
+    <meta
+      property="og:image"
+      content="https://time.ashlight.store/favicon.svg"
+    />
     <meta property="og:url" content="https://time.ashlight.store/" />
-    <meta property="og:site_name" content="Ashlight Server Time" />
+    <meta property="og:site_name" content="예매는타이밍" />
     <meta property="og:locale" content="ko_KR" />
 
     <!-- Twitter Card 태그 -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="티켓팅용 서버 시계 | Ashlight Server Time" />
+    <meta name="twitter:title" content="예매는타이밍 | 티켓팅용 서버 시계" />
     <meta
       name="twitter:description"
       content="티켓팅용 공식 서버시계. 밀리초 단위 정확도, 오차 보정, 카운트다운 제공."
     />
-    <meta name="twitter:image" content="https://time.ashlight.store/favicon.svg" />
+    <meta
+      name="twitter:image"
+      content="https://time.ashlight.store/favicon.svg"
+    />
 
     <!-- 네이버 검색 등록용 메타 태그 -->
     <meta name="naver-site-verification" content="" />
@@ -73,7 +77,7 @@
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "Ashlight Server Time - 티켓팅용 서버 시계",
+        "name": "예매는타이밍 - 티켓팅용 서버 시계",
         "description": "티켓팅용 공식 서버시계. 한국 표준시(KST) 밀리초 단위 정확도, 오차 보정, 카운트다운, 티켓팅 사이트별 시간 비교 제공.",
         "url": "https://time.ashlight.store/",
         "applicationCategory": "UtilityApplication",
@@ -142,14 +146,29 @@
   <body>
     <div class="container">
       <header>
-        <h1>⏰ Ashlight Server Time</h1>
+        <h1>⏰ 예매는타이밍</h1>
         <p class="subtitle">티켓팅용 밀리초 단위 정확도 서버시계</p>
         <div class="header-controls">
-          <button class="btn btn-secondary" id="fullscreenBtn" onclick="toggleFullscreen()">
+          <button
+            class="btn btn-secondary"
+            id="fullscreenBtn"
+            onclick="toggleFullscreen()"
+          >
             📺 전체화면
           </button>
-          <button class="btn btn-secondary" id="darkModeBtn" onclick="toggleDarkMode()">
+          <button
+            class="btn btn-secondary"
+            id="darkModeBtn"
+            onclick="toggleDarkMode()"
+          >
             🌙 암전 모드
+          </button>
+          <button
+            class="btn btn-secondary"
+            id="widgetBtn"
+            onclick="toggleWidgetMode()"
+          >
+            📱 위젯 모드
           </button>
         </div>
       </header>
@@ -169,7 +188,30 @@
       <main>
         <!-- 서버 시계 섹션 -->
         <section class="server-time-section">
-          <h2>🕐 서버 시계 (KST)</h2>
+          <h2 id="serverTimeTitle">🕐 서버 시계 (KST)</h2>
+          <div class="time-selector-wrapper">
+            <label for="timeSourceSelect" class="time-selector-label"
+              >시간 표시:</label
+            >
+            <select
+              id="timeSourceSelect"
+              class="time-selector"
+              onchange="changeTimeSource()"
+            >
+              <option value="server">서버 시계 (기본)</option>
+              <option value="melon">멜론</option>
+              <option value="interpark">인터파크</option>
+              <option value="naver">네이버</option>
+              <option value="yes24">예스24</option>
+            </select>
+            <button
+              class="btn btn-primary sync-btn-inline"
+              onclick="syncServerTime()"
+              title="오차 보정"
+            >
+              🔄
+            </button>
+          </div>
           <div class="server-time-display">
             <div class="time-main" id="serverTimeMain">
               <span class="time-hours" id="timeHours">00</span>:
@@ -177,18 +219,10 @@
               <span class="time-seconds" id="timeSeconds">00</span>.
               <span class="time-milliseconds" id="timeMilliseconds">000</span>
             </div>
-            <div class="time-status" id="timeStatus">
-              <span class="status-indicator" id="statusIndicator">●</span>
-              <span id="statusText">동기화 중...</span>
-            </div>
-            <div class="time-offset" id="timeOffset">오차: 측정 중...</div>
           </div>
-          <div class="server-time-controls">
+          <div class="server-time-controls widget-hidden">
             <button class="btn btn-primary" onclick="syncServerTime()">
               🔄 오차 보정
-            </button>
-            <button class="btn btn-secondary" onclick="measureAccuracy()">
-              📊 정확도 측정
             </button>
           </div>
         </section>
@@ -236,44 +270,40 @@
           </button>
           <div class="countdown-display" id="countdownDisplay">
             <div class="countdown-main" id="countdownMain">--:--:--.---</div>
-            <div class="countdown-label" id="countdownLabel">카운트다운을 시작하세요</div>
+            <div class="countdown-label" id="countdownLabel">
+              카운트다운을 시작하세요
+            </div>
+            <div
+              class="countdown-share-buttons"
+              id="countdownShareButtons"
+              style="display: none"
+            >
+              <button
+                class="btn btn-secondary share-btn"
+                onclick="shareCountdownToKakao()"
+              >
+                💬 카카오톡 공유
+              </button>
+              <button
+                class="btn btn-secondary share-btn"
+                onclick="shareCountdownToInstagram()"
+              >
+                📷 인스타그램 공유
+              </button>
+              <button
+                class="btn btn-secondary share-btn"
+                onclick="copyCountdown()"
+              >
+                📋 복사하기
+              </button>
+            </div>
           </div>
-        </section>
-
-        <!-- 오차 측정 섹션 -->
-        <section class="accuracy-section">
-          <h2>📊 정확도 측정</h2>
-          <div class="accuracy-info" id="accuracyInfo">
-            <div class="accuracy-item">
-              <span class="accuracy-label">장치 예상 오차:</span>
-              <span class="accuracy-value" id="deviceError">측정 중...</span>
-            </div>
-            <div class="accuracy-item">
-              <span class="accuracy-label">현재 Ping:</span>
-              <span class="accuracy-value" id="currentPing">측정 중...</span>
-            </div>
-            <div class="accuracy-item">
-              <span class="accuracy-label">권장 네트워크:</span>
-              <span class="accuracy-value" id="recommendedNetwork">측정 중...</span>
-            </div>
-          </div>
-          <button class="btn btn-primary" onclick="measureAccuracy()">
-            🔍 정확도 측정하기
-          </button>
         </section>
 
         <!-- 티켓팅 준비 체크리스트 -->
         <section class="checklist-section">
           <h2>✅ 티켓팅 준비 체크리스트</h2>
           <div class="checklist-items">
-            <label class="checklist-item">
-              <input type="checkbox" id="check1" />
-              <span>브라우저 새로고침 금지 (페이지 캐시 제거)</span>
-            </label>
-            <label class="checklist-item">
-              <input type="checkbox" id="check2" />
-              <span>오차보정 버튼 필수 클릭</span>
-            </label>
             <label class="checklist-item">
               <input type="checkbox" id="check3" />
               <span>티켓팅 사이트 로그인 미리 해두기</span>
@@ -287,111 +317,37 @@
               <span>다른 프로그램/앱 종료 (성능 최적화)</span>
             </label>
             <label class="checklist-item">
-              <input type="checkbox" id="check6" />
-              <span>화면 고정 모드 활성화 (3초 후 자동)</span>
+              <input type="checkbox" id="check7" />
+              <span>결제창 팝업 허용 설정 확인</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check8" />
+              <span>결제 수단 미리 등록/확인</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check9" />
+              <span>자동완성 기능 활성화 (주소, 전화번호 등)</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check10" />
+              <span>쿠키 및 캐시 허용 설정 확인</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check11" />
+              <span>신용카드 정보 미리 준비 (카드번호, CVC 등)</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check12" />
+              <span>티켓팅 사이트 결제 페이지 미리 열어두기</span>
+            </label>
+            <label class="checklist-item">
+              <input type="checkbox" id="check13" />
+              <span>될거라는 마음가짐 💪</span>
             </label>
           </div>
-        </section>
-
-        <!-- D-day 계산 섹션 (기존 기능 유지) -->
-        <section
-          class="calculator-section"
-          itemscope
-          itemtype="https://schema.org/SoftwareApplication"
-        >
-          <h2>🎯 목표일까지 며칠 남았나요?</h2>
-          <div class="input-group">
-            <label for="targetDate">목표 날짜</label>
-            <input type="date" id="targetDate" required />
+          <div class="checklist-complete-message" id="checklistCompleteMessage">
+            <div class="complete-message-text" id="completeMessageText"></div>
           </div>
-          <button class="btn btn-primary" onclick="calculateDday()">
-            계산하기
-          </button>
-
-          <div id="ddayResult" class="result-box"></div>
-        </section>
-
-        <!-- 역계산 섹션 -->
-        <section class="calculator-section">
-          <h2>📆 N일 후는 언제인가요?</h2>
-          <div class="input-group">
-            <label for="daysInput">며칠 후</label>
-            <input
-              type="number"
-              id="daysInput"
-              min="1"
-              placeholder="일 수를 입력하세요"
-            />
-          </div>
-          <div class="input-group">
-            <label for="startDate">시작 날짜</label>
-            <input type="date" id="startDate" />
-          </div>
-          <button class="btn btn-primary" onclick="calculateFutureDate()">
-            계산하기
-          </button>
-
-          <div id="futureDateResult" class="result-box"></div>
-        </section>
-
-        <!-- 빠른 계산 버튼 -->
-        <section class="quick-calc-section">
-          <h2>⚡ 빠른 계산</h2>
-          <div class="quick-buttons">
-            <button class="btn btn-secondary" onclick="quickCalculate(50)">
-              50일 후
-            </button>
-            <button class="btn btn-secondary" onclick="quickCalculate(100)">
-              100일 후
-            </button>
-            <button class="btn btn-secondary" onclick="quickCalculate(200)">
-              200일 후
-            </button>
-            <button class="btn btn-secondary" onclick="quickCalculate(300)">
-              300일 후
-            </button>
-          </div>
-          <div id="quickResult" class="result-box"></div>
-        </section>
-
-        <!-- 메모/각오 작성 섹션 -->
-        <section class="memo-section">
-          <h2>✍️ 메모 / 각오 작성</h2>
-          <div class="input-group">
-            <label for="memoText">오늘의 각오나 메모를 남겨보세요</label>
-            <textarea
-              id="memoText"
-              rows="4"
-              placeholder="예: 시험까지 79일 남았다. 오늘은 2시간 공부했다"
-            ></textarea>
-          </div>
-          <div class="memo-actions">
-            <button class="btn btn-primary" onclick="saveMemo()">
-              저장하기
-            </button>
-            <button class="btn btn-secondary" onclick="loadMemos()">
-              저장된 메모 보기
-            </button>
-          </div>
-          <div id="memosList" class="memos-list"></div>
-        </section>
-
-        <!-- 위젯 코드 생성기 -->
-        <section class="widget-section">
-          <h2>🔗 블로그용 위젯 코드 생성</h2>
-          <p>블로그나 카페에 D-day 위젯을 붙여보세요!</p>
-          <div class="input-group">
-            <label for="widgetDate">위젯에 표시할 날짜</label>
-            <input type="date" id="widgetDate" />
-          </div>
-          <div class="input-group">
-            <label for="widgetTitle">위젯 제목</label>
-            <input type="text" id="widgetTitle" placeholder="예: 시험일까지" />
-          </div>
-          <button class="btn btn-primary" onclick="generateWidget()">
-            위젯 코드 생성
-          </button>
-          <div id="widgetResult" class="widget-result"></div>
         </section>
       </main>
 
@@ -408,7 +364,12 @@
       </div>
 
       <footer>
-        <p>© 2025 AshLight. All rights reserved.</p>
+        <p>
+          © 2025
+          <a href="mailto:ashlight2510@gmail.com" class="footer-email"
+            >AshLight</a
+          >. All rights reserved.
+        </p>
       </footer>
     </div>
 

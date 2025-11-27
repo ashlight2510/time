@@ -4,17 +4,43 @@ let serverTimeSyncTime = 0; // 마지막 동기화 시점의 클라이언트 시
 let serverTimeInterval = null;
 let countdownInterval = null;
 let autoFullscreenTimer = null;
+let currentTimeSource = 'server'; // 현재 선택된 시간 소스
 
-// 플랫폼별 보정값 (초 단위)
+// 플랫폼별 보정값 (초 단위) - 기본값 (실제 서버 시간 가져오기 실패 시 사용)
 const platformOffsets = {
+    server: 0,
     melon: 0.2,
     interpark: -0.1,
     naver: 0.05,
     yes24: 0.1
 };
 
-// 페이지 로드 시 현재 날짜를 기본값으로 설정
-document.addEventListener('DOMContentLoaded', function() {
+// 플랫폼별 실제 서버 시간 (밀리초, 클라이언트 시간 기준)
+const platformServerTimes = {
+    melon: null,
+    interpark: null,
+    naver: null,
+    yes24: null
+};
+
+// 플랫폼별 서버 시간 마지막 동기화 시점
+const platformSyncTimes = {
+    melon: 0,
+    interpark: 0,
+    naver: 0,
+    yes24: 0
+};
+
+// 티켓팅 사이트 URL
+const platformUrls = {
+    melon: 'https://ticket.melon.com',
+    interpark: 'https://tickets.interpark.com',
+    naver: 'https://ticket.book.naver.com',
+    yes24: 'https://ticket.yes24.com'
+};
+
+// DOM 준비 시 초기화
+function initializeApp() {
     const today = new Date();
     const todayString = formatDateForInput(today);
     
@@ -42,6 +68,12 @@ document.addEventListener('DOMContentLoaded', function() {
         countdownDateInput.value = todayString;
     }
     
+    // 카운트다운 시간 기본값을 오후 8시로 설정
+    const countdownTimeInput = document.getElementById('countdownTime');
+    if (countdownTimeInput && !countdownTimeInput.value) {
+        countdownTimeInput.value = '20:00';
+    }
+    
     // 서버 시간 동기화 시작
     syncServerTime();
     
@@ -51,12 +83,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // 플랫폼 시간 업데이트 시작
     startPlatformTimeUpdate();
     
+    // 티켓팅 사이트 서버 시간 동기화 시작
+    syncPlatformServerTimes();
+    
+    // 1분마다 티켓팅 사이트 서버 시간 동기화
+    setInterval(syncPlatformServerTimes, 60 * 1000);
+    
     // 암전 모드 초기화
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (savedDarkMode) {
         document.body.classList.add('dark-mode');
         const btn = document.getElementById('darkModeBtn');
         if (btn) btn.textContent = '☀️ 일반 모드';
+    }
+    
+    // 위젯 모드 초기화
+    const savedWidgetMode = localStorage.getItem('widgetMode') === 'true';
+    if (savedWidgetMode) {
+        toggleWidgetMode();
     }
     
     // 전체화면 이벤트 리스너
@@ -80,7 +124,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // 체크리스트 자동 저장
     loadChecklist();
     setupChecklistListeners();
-});
+    
+    // 시간 소스 초기화
+    const savedTimeSource = localStorage.getItem('timeSource') || 'server';
+    currentTimeSource = savedTimeSource;
+    const timeSourceSelect = document.getElementById('timeSourceSelect');
+    if (timeSourceSelect) {
+        timeSourceSelect.value = currentTimeSource;
+    }
+    updateTimeSourceTitle();
+}
+
+function onDomReady(callback) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', callback);
+    } else {
+        callback();
+    }
+}
+
+onDomReady(initializeApp);
 
 // 날짜를 input[type="date"] 형식으로 변환 (YYYY-MM-DD)
 function formatDateForInput(date) {
@@ -215,8 +278,6 @@ function calculateDday() {
 }
 
 // 실시간 카운트다운
-let countdownInterval = null;
-
 function startCountdown(targetDate, resultBox) {
     // 기존 인터벌 정리
     if (countdownInterval) {
@@ -991,31 +1052,45 @@ document.addEventListener('keypress', function(e) {
 
 // 서버 시간 동기화
 async function syncServerTime() {
-    const statusIndicator = document.getElementById('statusIndicator');
-    const statusText = document.getElementById('statusText');
-    
-    if (statusIndicator) {
-        statusIndicator.className = 'status-indicator syncing';
-    }
-    if (statusText) {
-        statusText.textContent = '동기화 중...';
-    }
+    // 티켓팅 사이트 서버 시간도 함께 동기화
+    await syncPlatformServerTimes();
     
     try {
-        // 여러 서버에서 시간을 가져와서 평균 계산
-        const timePromises = [
-            fetchServerTime('https://worldtimeapi.org/api/timezone/Asia/Seoul'),
-            fetchServerTime('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Seoul'),
-            fetchServerTimeFromHeaders()
+        // 여러 서버에서 시간을 가져와서 평균 계산 (순차적으로 시도)
+        const timeSources = [
+            () => fetchServerTime('https://worldtimeapi.org/api/timezone/Asia/Seoul'),
+            () => fetchServerTime('https://worldtimeapi.org/api/ip'),
+            () => fetchServerTime('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Seoul'),
+            () => fetchServerTime('https://api.ipgeolocation.io/timezone?apiKey=free&tz=Asia/Seoul'),
+            () => fetchServerTimeFromHeaders(),
+            () => fetchServerTimeFromNTP()
         ];
         
-        const times = await Promise.allSettled(timePromises);
-        const validTimes = times
-            .filter(t => t.status === 'fulfilled' && t.value !== null)
-            .map(t => t.value);
+        const validTimes = [];
+        
+        // 각 소스를 순차적으로 시도 (하나라도 성공하면 계속)
+        for (const source of timeSources) {
+            try {
+                const time = await Promise.race([
+                    source(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+                ]);
+                
+                if (time !== null && time > 0) {
+                    validTimes.push(time);
+                    // 최소 2개 이상 모으면 충분
+                    if (validTimes.length >= 2) break;
+                }
+            } catch (error) {
+                // 다음 소스 시도
+                continue;
+            }
+        }
         
         if (validTimes.length === 0) {
-            throw new Error('서버 시간을 가져올 수 없습니다');
+            // 모든 소스 실패 시 클라이언트 시간 사용
+            serverTimeOffset = 0;
+            return;
         }
         
         // 평균 계산
@@ -1025,36 +1100,31 @@ async function syncServerTime() {
         serverTimeOffset = avgTime - clientTime;
         serverTimeSyncTime = clientTime;
         
-        if (statusIndicator) {
-            statusIndicator.className = 'status-indicator synced';
-        }
-        if (statusText) {
-            statusText.textContent = '동기화 완료';
-        }
-        
-        updateTimeOffsetDisplay();
-        
         // 5분마다 자동 동기화
         setTimeout(syncServerTime, 5 * 60 * 1000);
         
     } catch (error) {
         console.error('서버 시간 동기화 실패:', error);
-        if (statusIndicator) {
-            statusIndicator.className = 'status-indicator error';
-        }
-        if (statusText) {
-            statusText.textContent = '동기화 실패 - 클라이언트 시간 사용';
-        }
-        // 실패 시 클라이언트 시간 사용
         serverTimeOffset = 0;
     }
 }
 
-// 서버 시간 가져오기 (WorldTimeAPI)
+// 서버 시간 가져오기 (다양한 API 지원)
 async function fetchServerTime(url) {
     try {
         const startTime = performance.now();
-        const response = await fetch(url, { cache: 'no-store' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(url, { 
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        clearTimeout(timeoutId);
         const endTime = performance.now();
         const roundTripTime = endTime - startTime;
         
@@ -1063,19 +1133,36 @@ async function fetchServerTime(url) {
         const data = await response.json();
         let serverTime;
         
+        // 다양한 API 응답 형식 지원
         if (data.unixtime) {
             serverTime = data.unixtime * 1000;
+        } else if (data.epoch) {
+            serverTime = data.epoch * 1000;
         } else if (data.dateTime) {
             serverTime = new Date(data.dateTime).getTime();
         } else if (data.currentDateTime) {
             serverTime = new Date(data.currentDateTime).getTime();
+        } else if (data.datetime) {
+            serverTime = new Date(data.datetime).getTime();
+        } else if (data.time_24) {
+            // ipgeolocation.io 형식
+            const dateStr = data.date + ' ' + data.time_24;
+            serverTime = new Date(dateStr).getTime();
+        } else if (data.utc_datetime) {
+            serverTime = new Date(data.utc_datetime).getTime();
         } else {
+            return null;
+        }
+        
+        // 유효성 검사
+        if (isNaN(serverTime) || serverTime <= 0) {
             return null;
         }
         
         // 왕복 시간의 절반을 보정
         return serverTime + (roundTripTime / 2);
     } catch (error) {
+        // 네트워크 오류나 타임아웃은 무시
         return null;
     }
 }
@@ -1084,10 +1171,16 @@ async function fetchServerTime(url) {
 async function fetchServerTimeFromHeaders() {
     try {
         const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch(window.location.href, { 
             method: 'HEAD',
-            cache: 'no-store' 
+            cache: 'no-store',
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         const endTime = performance.now();
         const roundTripTime = endTime - startTime;
         
@@ -1095,7 +1188,42 @@ async function fetchServerTimeFromHeaders() {
         if (!dateHeader) return null;
         
         const serverTime = new Date(dateHeader).getTime();
+        if (isNaN(serverTime) || serverTime <= 0) return null;
+        
         return serverTime + (roundTripTime / 2);
+    } catch (error) {
+        return null;
+    }
+}
+
+// NTP 서버에서 시간 가져오기 (간단한 HTTP 기반)
+async function fetchServerTimeFromNTP() {
+    try {
+        // NTP 웹 서비스 사용
+        const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        // 간단한 타임스탬프 서비스
+        const response = await fetch('https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Seoul', {
+            cache: 'no-store',
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        const endTime = performance.now();
+        const roundTripTime = endTime - startTime;
+        
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        if (data.dateTime) {
+            const serverTime = new Date(data.dateTime).getTime();
+            if (isNaN(serverTime) || serverTime <= 0) return null;
+            return serverTime + (roundTripTime / 2);
+        }
+        
+        return null;
     } catch (error) {
         return null;
     }
@@ -1116,8 +1244,31 @@ function startServerTimeUpdate() {
 // 서버 시간 표시 업데이트
 function updateServerTimeDisplay() {
     const now = Date.now();
-    const serverTime = now + serverTimeOffset;
-    const date = new Date(serverTime);
+    let displayTime;
+    
+    // 선택된 시간 소스에 따라 표시할 시간 결정
+    if (currentTimeSource === 'server') {
+        displayTime = now + serverTimeOffset;
+    } else if (currentTimeSource === 'melon' || currentTimeSource === 'interpark' || 
+               currentTimeSource === 'naver' || currentTimeSource === 'yes24') {
+        const platformServerTime = platformServerTimes[currentTimeSource];
+        const syncTime = platformSyncTimes[currentTimeSource];
+        const timeSinceSync = now - syncTime;
+        
+        if (platformServerTime !== null && timeSinceSync < 120000) {
+            // 실제 서버 시간 사용
+            displayTime = now + platformServerTime;
+        } else {
+            // 기본 보정값 사용
+            const serverTime = now + serverTimeOffset;
+            displayTime = serverTime + (platformOffsets[currentTimeSource] * 1000);
+        }
+    } else {
+        // 기본값: 서버 시간
+        displayTime = now + serverTimeOffset;
+    }
+    
+    const date = new Date(displayTime);
     
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -1135,33 +1286,118 @@ function updateServerTimeDisplay() {
     if (millisecondsEl) millisecondsEl.textContent = milliseconds;
 }
 
-// 오차 표시 업데이트
-function updateTimeOffsetDisplay() {
-    const offsetEl = document.getElementById('timeOffset');
-    if (!offsetEl) return;
-    
-    const offsetSeconds = Math.abs(serverTimeOffset) / 1000;
-    const sign = serverTimeOffset >= 0 ? '+' : '-';
-    
-    if (offsetSeconds < 0.01) {
-        offsetEl.textContent = `오차: ±0.01초 이하 (매우 정확)`;
-        offsetEl.style.color = '#4ade80';
-    } else if (offsetSeconds < 0.1) {
-        offsetEl.textContent = `오차: ${sign}${offsetSeconds.toFixed(3)}초 (정확)`;
-        offsetEl.style.color = '#4ade80';
-    } else if (offsetSeconds < 0.5) {
-        offsetEl.textContent = `오차: ${sign}${offsetSeconds.toFixed(3)}초 (보통)`;
-        offsetEl.style.color = '#fbbf24';
-    } else {
-        offsetEl.textContent = `오차: ${sign}${offsetSeconds.toFixed(3)}초 (재동기화 권장)`;
-        offsetEl.style.color = '#ef4444';
+// 시간 소스 변경
+function changeTimeSource() {
+    const timeSourceSelect = document.getElementById('timeSourceSelect');
+    if (timeSourceSelect) {
+        currentTimeSource = timeSourceSelect.value;
+        localStorage.setItem('timeSource', currentTimeSource);
+        updateTimeSourceTitle();
     }
 }
+
+// 시간 소스에 따른 제목 업데이트
+function updateTimeSourceTitle() {
+    const titleEl = document.getElementById('serverTimeTitle');
+    if (!titleEl) return;
+    
+    const sourceNames = {
+        'server': '서버 시계 (KST)',
+        'melon': '멜론 시계',
+        'interpark': '인터파크 시계',
+        'naver': '네이버 시계',
+        'yes24': '예스24 시계'
+    };
+    
+    const title = sourceNames[currentTimeSource] || '서버 시계 (KST)';
+    titleEl.textContent = `🕐 ${title}`;
+}
+
 
 // 플랫폼 시간 업데이트 시작
 function startPlatformTimeUpdate() {
     updatePlatformTimes();
     setInterval(updatePlatformTimes, 10);
+}
+
+// 티켓팅 사이트 서버 시간 가져오기 (HEAD 요청 + Date 헤더)
+async function fetchPlatformServerTime(platformId) {
+    const url = platformUrls[platformId];
+    if (!url) return null;
+    
+    try {
+        const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        // HEAD 요청으로 Date 헤더 가져오기
+        const response = await fetch(url, {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: controller.signal,
+            credentials: 'omit'
+        });
+        
+        clearTimeout(timeoutId);
+        const endTime = performance.now();
+        const roundTripTime = endTime - startTime;
+        
+        const dateHeader = response.headers.get('Date');
+        if (!dateHeader) {
+            console.warn(`${platformId}: Date 헤더 없음`);
+            return null;
+        }
+        
+        // UTC 시간을 파싱
+        const serverTimeUTC = new Date(dateHeader).getTime();
+        if (isNaN(serverTimeUTC) || serverTimeUTC <= 0) {
+            console.warn(`${platformId}: Date 헤더 파싱 실패`);
+            return null;
+        }
+        
+        // KST로 변환 (UTC + 9시간)
+        const serverTimeKST = serverTimeUTC + (9 * 60 * 60 * 1000);
+        
+        // RTT 보정 (왕복 시간의 절반을 더함)
+        const correctedTime = serverTimeKST + (roundTripTime / 2);
+        
+        return correctedTime;
+    } catch (error) {
+        // CORS 오류나 네트워크 오류
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            // CORS 제한으로 인해 직접 요청 불가 (정상적인 상황)
+            console.info(`${platformId}: CORS 제한으로 직접 요청 불가 (백엔드 프록시 필요)`);
+        } else {
+            console.warn(`${platformId} 서버 시간 가져오기 실패:`, error.message);
+        }
+        return null;
+    }
+}
+
+// 티켓팅 사이트 서버 시간 동기화
+async function syncPlatformServerTimes() {
+    const platforms = ['melon', 'interpark', 'naver', 'yes24'];
+    const now = Date.now();
+    
+    // 병렬로 모든 플랫폼 서버 시간 가져오기 시도
+    const promises = platforms.map(async (platformId) => {
+        try {
+            const serverTime = await fetchPlatformServerTime(platformId);
+            if (serverTime && serverTime > 0) {
+                // 클라이언트 시간 기준으로 오프셋 저장
+                platformServerTimes[platformId] = serverTime - now;
+                platformSyncTimes[platformId] = now;
+                console.log(`${platformId} 서버 시간 동기화 성공`);
+            } else {
+                // 실패 시 기본 보정값 사용
+                platformServerTimes[platformId] = null;
+            }
+        } catch (error) {
+            platformServerTimes[platformId] = null;
+        }
+    });
+    
+    await Promise.allSettled(promises);
 }
 
 // 플랫폼별 시간 업데이트
@@ -1177,7 +1413,31 @@ function updatePlatformTimes() {
     ];
     
     platforms.forEach(platform => {
-        const platformTime = new Date(serverTime + (platform.offset * 1000));
+        let platformTime;
+        let offsetText = '';
+        let offsetValue = platform.offset;
+        
+        // 실제 서버 시간이 있으면 사용 (1분 이내 동기화된 것만)
+        const platformServerTime = platformServerTimes[platform.id];
+        const syncTime = platformSyncTimes[platform.id];
+        const timeSinceSync = now - syncTime;
+        
+        if (platformServerTime !== null && timeSinceSync < 120000) { // 2분 이내
+            // 실제 서버 시간 사용
+            const actualServerTime = now + platformServerTime;
+            platformTime = new Date(actualServerTime);
+            
+            // KST 기준 오차 계산 (실제 서버 시간 - KST 서버 시간)
+            const kstServerTime = now + serverTimeOffset;
+            const actualOffset = (actualServerTime - kstServerTime) / 1000;
+            offsetValue = actualOffset;
+            offsetText = `${actualOffset >= 0 ? '+' : ''}${actualOffset.toFixed(3)}초 (KST 대비)`;
+        } else {
+            // 기본 보정값 사용 (KST 기준)
+            platformTime = new Date(serverTime + (platform.offset * 1000));
+            offsetText = `${platform.offset >= 0 ? '+' : ''}${platform.offset}초 (KST 대비)`;
+        }
+        
         const hours = String(platformTime.getHours()).padStart(2, '0');
         const minutes = String(platformTime.getMinutes()).padStart(2, '0');
         const seconds = String(platformTime.getSeconds()).padStart(2, '0');
@@ -1191,9 +1451,8 @@ function updatePlatformTimes() {
         }
         
         if (offsetEl) {
-            const sign = platform.offset >= 0 ? '+' : '';
-            offsetEl.textContent = `${sign}${platform.offset}초`;
-            offsetEl.className = `platform-offset ${platform.offset >= 0 ? 'positive' : 'negative'}`;
+            offsetEl.textContent = offsetText;
+            offsetEl.className = `platform-offset ${offsetValue >= 0 ? 'positive' : 'negative'}`;
         }
     });
 }
@@ -1308,7 +1567,7 @@ function startCountdown() {
         
         if (diff <= 0) {
             if (countdownMainEl) {
-                countdownMainEl.textContent = '00:00:00.000';
+                countdownMainEl.textContent = '00시간 00분 00초';
                 countdownMainEl.className = 'countdown-main danger';
             }
             if (countdownLabelEl) {
@@ -1329,7 +1588,7 @@ function startCountdown() {
         const millisecondsStr = String(milliseconds).padStart(3, '0');
         
         if (countdownMainEl) {
-            countdownMainEl.textContent = `${hoursStr}:${minutesStr}:${secondsStr}.${millisecondsStr}`;
+            countdownMainEl.textContent = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
             
             // 10초 이하일 때 빨간색, 1분 이하일 때 노란색
             if (diff < 10000) {
@@ -1345,6 +1604,12 @@ function startCountdown() {
             const targetDateStr = formatDateKorean(targetDateTime);
             countdownLabelEl.textContent = `${targetDateStr} ${timeStr}까지`;
         }
+        
+        // 공유 버튼 표시
+        const shareButtons = document.getElementById('countdownShareButtons');
+        if (shareButtons) {
+            shareButtons.style.display = 'flex';
+        }
     }
     
     // 즉시 업데이트
@@ -1352,6 +1617,200 @@ function startCountdown() {
     
     // 10ms마다 업데이트
     countdownInterval = setInterval(updateCountdown, 10);
+    
+    // 전역 변수에 카운트다운 정보 저장 (공유용)
+    window.countdownInfo = {
+        date: dateStr,
+        time: timeStr,
+        targetTime: targetTime
+    };
+}
+
+// 카운트다운 카카오톡 공유
+function shareCountdownToKakao() {
+    if (!window.countdownInfo) {
+        alert('카운트다운을 먼저 시작해주세요.');
+        return;
+    }
+    
+    const { date, time, targetTime } = window.countdownInfo;
+    const now = Date.now() + serverTimeOffset;
+    const diff = targetTime - now;
+    
+    if (diff <= 0) {
+        alert('티켓팅 시간이 지났습니다.');
+        return;
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    const secondsStr = String(seconds).padStart(2, '0');
+    
+    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const targetDate = new Date(`${date}T${time}:00`);
+    const dateStr = formatDateKorean(targetDate);
+    
+    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: '티켓팅 카운트다운',
+            text: shareText,
+            url: window.location.href
+        }).catch(err => {
+            console.log('공유 실패:', err);
+            copyToClipboard(shareText);
+            alert('텍스트가 클립보드에 복사되었습니다!');
+        });
+    } else {
+        copyToClipboard(shareText);
+        alert('텍스트가 클립보드에 복사되었습니다! 카카오톡에서 공유해주세요.');
+    }
+}
+
+// 카운트다운 인스타그램 공유
+function shareCountdownToInstagram() {
+    if (!window.countdownInfo) {
+        alert('카운트다운을 먼저 시작해주세요.');
+        return;
+    }
+    
+    const { date, time, targetTime } = window.countdownInfo;
+    const now = Date.now() + serverTimeOffset;
+    const diff = targetTime - now;
+    
+    if (diff <= 0) {
+        alert('티켓팅 시간이 지났습니다.');
+        return;
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    const secondsStr = String(seconds).padStart(2, '0');
+    
+    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const targetDate = new Date(`${date}T${time}:00`);
+    const dateStr = formatDateKorean(targetDate);
+    
+    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫\n${window.location.href}`;
+    
+    // 클립보드에 복사
+    copyToClipboard(shareText).then(() => {
+        // 모바일에서는 인스타그램 앱 열기 시도
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // 인스타그램 앱 열기 시도
+            const instagramAppUrl = 'instagram://';
+            const instagramWebUrl = 'https://www.instagram.com/';
+            
+            // 앱이 설치되어 있으면 앱 열기, 없으면 웹 열기
+            window.location.href = instagramAppUrl;
+            
+            // 2초 후에도 페이지가 그대로면 웹으로 이동
+            setTimeout(() => {
+                if (document.hasFocus()) {
+                    window.open(instagramWebUrl, '_blank');
+                }
+            }, 2000);
+            
+            alert('텍스트가 클립보드에 복사되었습니다!\n인스타그램 앱이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.');
+        } else {
+            // 데스크톱에서는 인스타그램 웹 열기
+            window.open('https://www.instagram.com/', '_blank');
+            alert('텍스트가 클립보드에 복사되었습니다!\n인스타그램 웹이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.');
+        }
+    }).catch(() => {
+        alert('복사에 실패했습니다. 다시 시도해주세요.');
+    });
+}
+
+// 카운트다운 복사하기
+function copyCountdown() {
+    if (!window.countdownInfo) {
+        alert('카운트다운을 먼저 시작해주세요.');
+        return;
+    }
+    
+    const { date, time, targetTime } = window.countdownInfo;
+    const now = Date.now() + serverTimeOffset;
+    const diff = targetTime - now;
+    
+    if (diff <= 0) {
+        alert('티켓팅 시간이 지났습니다.');
+        return;
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    const secondsStr = String(seconds).padStart(2, '0');
+    
+    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const targetDate = new Date(`${date}T${time}:00`);
+    const dateStr = formatDateKorean(targetDate);
+    
+    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫\n${window.location.href}`;
+    
+    copyToClipboard(shareText).then(() => {
+        alert('카운트다운 정보가 클립보드에 복사되었습니다!');
+    }).catch(() => {
+        alert('복사에 실패했습니다. 다시 시도해주세요.');
+    });
+}
+
+// 클립보드에 복사 (Promise 반환)
+function copyToClipboard(text) {
+    return new Promise((resolve, reject) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                resolve();
+            }).catch(err => {
+                console.error('클립보드 복사 실패:', err);
+                try {
+                    fallbackCopyToClipboard(text);
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        } else {
+            try {
+                fallbackCopyToClipboard(text);
+                resolve();
+            } catch (e) {
+                reject(e);
+            }
+        }
+    });
+}
+
+// 클립보드 복사 폴백
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+    } catch (err) {
+        console.error('클립보드 복사 실패:', err);
+    }
+    document.body.removeChild(textArea);
 }
 
 // 전체화면 모드 토글
@@ -1379,19 +1838,16 @@ function toggleFullscreen() {
     }
 }
 
-// 자동 전체화면 (3초 후)
-function startAutoFullscreen() {
-    if (autoFullscreenTimer) {
-        clearTimeout(autoFullscreenTimer);
-    }
-    
-    autoFullscreenTimer = setTimeout(() => {
-        const check6 = document.getElementById('check6');
-        if (check6 && check6.checked) {
-            toggleFullscreen();
-        }
-    }, 3000);
-}
+// 자동 전체화면 (3초 후) - 더 이상 사용하지 않음
+// function startAutoFullscreen() {
+//     if (autoFullscreenTimer) {
+//         clearTimeout(autoFullscreenTimer);
+//     }
+//     
+//     autoFullscreenTimer = setTimeout(() => {
+//         toggleFullscreen();
+//     }, 3000);
+// }
 
 // 암전 모드 토글
 function toggleDarkMode() {
@@ -1407,6 +1863,45 @@ function toggleDarkMode() {
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
 }
 
+// 위젯 모드 토글
+function toggleWidgetMode() {
+    const isWidgetMode = document.body.classList.contains('widget-mode');
+    
+    if (isWidgetMode) {
+        // 위젯 모드 해제
+        document.body.classList.remove('widget-mode');
+        const btn = document.getElementById('widgetBtn');
+        if (btn) btn.textContent = '📱 위젯 모드';
+        
+        // body 스타일 초기화
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.right = '';
+        document.body.style.left = '';
+        document.body.style.bottom = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        
+        // 전체화면 모드도 해제
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    } else {
+        // 위젯 모드 활성화
+        document.body.classList.add('widget-mode');
+        const btn = document.getElementById('widgetBtn');
+        if (btn) btn.textContent = '❌ 위젯 종료';
+        
+        // 전체화면 모드는 해제
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+            document.body.classList.remove('fullscreen-mode');
+        }
+    }
+    
+    localStorage.setItem('widgetMode', !isWidgetMode);
+}
+
 // 체크리스트 로드
 function loadChecklist() {
     const saved = localStorage.getItem('ticketingChecklist');
@@ -1414,12 +1909,18 @@ function loadChecklist() {
     
     try {
         const checklist = JSON.parse(saved);
-        for (let i = 1; i <= 6; i++) {
-            const checkbox = document.getElementById(`check${i}`);
-            if (checkbox && checklist[i]) {
-                checkbox.checked = true;
+        const checklistSection = document.querySelector('.checklist-section');
+        if (!checklistSection) return;
+        
+        const checkboxes = checklistSection.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+            if (checklist[index] !== undefined) {
+                checkbox.checked = checklist[index];
             }
-        }
+        });
+        
+        // 로드 후 완료 확인
+        setTimeout(checkChecklistComplete, 100);
     } catch (error) {
         console.error('체크리스트 로드 실패:', error);
     }
@@ -1427,28 +1928,107 @@ function loadChecklist() {
 
 // 체크리스트 저장
 function saveChecklist() {
-    const checklist = {};
-    for (let i = 1; i <= 6; i++) {
-        const checkbox = document.getElementById(`check${i}`);
-        if (checkbox) {
-            checklist[i] = checkbox.checked;
-        }
-    }
+    const checklistSection = document.querySelector('.checklist-section');
+    if (!checklistSection) return;
+    
+    const checkboxes = checklistSection.querySelectorAll('input[type="checkbox"]');
+    const checklist = Array.from(checkboxes).map(checkbox => checkbox.checked);
     localStorage.setItem('ticketingChecklist', JSON.stringify(checklist));
+}
+
+// 체크리스트 완료 멘트 배열
+const checklistCompleteMessages = [
+    '🎉 행운을 빕니다! 티켓팅 성공하세요!',
+    '✨ 모든 준비 완료! 이번엔 꼭 성공할 거예요!',
+    '🚀 완벽한 준비! 티켓팅 대박 나세요!',
+    '💪 모든 체크 완료! 당신의 티켓팅을 응원합니다!',
+    '🎫 준비 끝! 이제 티켓팅만 하면 됩니다!',
+    '🌟 완벽한 준비! 좋은 결과 있으시길!',
+    '🔥 모든 준비 완료! 티켓팅 화이팅!',
+    '💯 완벽합니다! 티켓팅 성공 기원합니다!',
+    '🎊 준비 완료! 행운이 함께하길!',
+    '⭐ 모든 체크 완료! 티켓팅 대박 나세요!',
+    '🎁 완벽한 준비! 좋은 결과 기대합니다!',
+    '🌈 모든 준비 끝! 티켓팅 성공하세요!',
+    '🎯 완벽합니다! 이번엔 꼭 성공할 거예요!',
+    '💎 모든 체크 완료! 티켓팅 화이팅!',
+    '🎪 준비 끝! 행운을 빕니다!',
+    '🏆 완벽한 준비! 티켓팅 대박 나세요!',
+    '🎨 모든 준비 완료! 좋은 결과 있으시길!',
+    '🎭 완벽합니다! 티켓팅 성공 기원합니다!',
+    '🎬 준비 끝! 이제 티켓팅만 하면 됩니다!',
+    '🎸 모든 체크 완료! 티켓팅 화이팅!'
+];
+
+// 체크리스트 완료 확인
+function checkChecklistComplete() {
+    // 체크리스트 섹션 내의 모든 체크박스 찾기
+    const checklistSection = document.querySelector('.checklist-section');
+    if (!checklistSection) {
+        console.error('체크리스트 섹션을 찾을 수 없습니다.');
+        return;
+    }
+    
+    const checkboxes = checklistSection.querySelectorAll('input[type="checkbox"]');
+    
+    if (checkboxes.length === 0) {
+        console.warn('체크박스를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 모든 체크박스가 체크되었는지 확인
+    const checkboxArray = Array.from(checkboxes);
+    const checkedCount = checkboxArray.filter(cb => cb.checked).length;
+    const allChecked = checkboxArray.length > 0 && checkboxArray.every(checkbox => checkbox.checked);
+    
+    console.log(`체크박스 총 개수: ${checkboxArray.length}, 체크된 개수: ${checkedCount}, 모두 체크됨: ${allChecked}`);
+    
+    const messageEl = document.getElementById('checklistCompleteMessage');
+    const messageTextEl = document.getElementById('completeMessageText');
+    
+    if (!messageEl) {
+        console.error('checklistCompleteMessage 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    if (!messageTextEl) {
+        console.error('completeMessageText 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    if (allChecked) {
+        // 랜덤 멘트 선택
+        const randomMessage = checklistCompleteMessages[Math.floor(Math.random() * checklistCompleteMessages.length)];
+        messageTextEl.textContent = randomMessage;
+        messageEl.classList.add('show');
+        console.log('완료 메시지 표시:', randomMessage);
+    } else {
+        messageEl.classList.remove('show');
+        console.log('완료 메시지 숨김');
+    }
 }
 
 // 체크리스트 리스너 설정
 function setupChecklistListeners() {
-    for (let i = 1; i <= 6; i++) {
-        const checkbox = document.getElementById(`check${i}`);
-        if (checkbox) {
-            checkbox.addEventListener('change', () => {
-                saveChecklist();
-                // 체크리스트 6번 (화면 고정 모드)이 체크되면 3초 후 자동 전체화면
-                if (i === 6 && checkbox.checked) {
-                    startAutoFullscreen();
-                }
-            });
-        }
+    const checklistSection = document.querySelector('.checklist-section');
+    if (!checklistSection) {
+        console.error('체크리스트 섹션을 찾을 수 없습니다.');
+        return;
     }
+    
+    const totalCheckboxes = checklistSection.querySelectorAll('input[type="checkbox"]').length;
+    console.log(`체크리스트 리스너 설정: ${totalCheckboxes}개 체크박스 발견`);
+
+    checklistSection.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!target || !target.matches('input[type="checkbox"]')) return;
+
+        console.log(`체크박스 상태 변경: ${target.id} = ${target.checked}`);
+        saveChecklist();
+        checkChecklistComplete();
+    });
+
+    // 초기 로드 시에도 확인
+    checkChecklistComplete();
+    setTimeout(checkChecklistComplete, 200);
 }
