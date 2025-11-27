@@ -7,6 +7,7 @@ let autoFullscreenTimer = null;
 let currentTimeSource = 'server'; // 현재 선택된 시간 소스
 
 // 플랫폼별 보정값 (초 단위) - 기본값 (실제 서버 시간 가져오기 실패 시 사용)
+// 사용자가 측정한 값이 있으면 localStorage에서 불러와서 사용
 const platformOffsets = {
     server: 0,
     melon: 0.2,
@@ -14,6 +15,43 @@ const platformOffsets = {
     naver: 0.05,
     yes24: 0.1
 };
+
+// 사용자 측정값 로드 (localStorage에서)
+function loadUserMeasuredOffsets() {
+    try {
+        const saved = localStorage.getItem('userPlatformOffsets');
+        if (saved) {
+            const userOffsets = JSON.parse(saved);
+            // 저장된 값이 있으면 사용 (최대 30일 이내 측정값만)
+            Object.keys(userOffsets).forEach(platformId => {
+                const measurement = userOffsets[platformId];
+                const daysSinceMeasurement = (Date.now() - measurement.timestamp) / (1000 * 60 * 60 * 24);
+                if (daysSinceMeasurement < 30 && measurement.offset !== undefined) {
+                    platformOffsets[platformId] = measurement.offset;
+                }
+            });
+        }
+    } catch (error) {
+        // 저장된 값이 없거나 파싱 실패 시 기본값 사용
+    }
+}
+
+// 사용자 측정값 저장
+function saveUserMeasuredOffset(platformId, offset) {
+    try {
+        const saved = localStorage.getItem('userPlatformOffsets') || '{}';
+        const userOffsets = JSON.parse(saved);
+        userOffsets[platformId] = {
+            offset: offset,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('userPlatformOffsets', JSON.stringify(userOffsets));
+        // 기본값도 업데이트 (다음 로드 시 사용)
+        platformOffsets[platformId] = offset;
+    } catch (error) {
+        // 저장 실패 시 무시
+    }
+}
 
 // 플랫폼별 실제 서버 시간 (밀리초, 클라이언트 시간 기준)
 const platformServerTimes = {
@@ -41,6 +79,9 @@ const platformUrls = {
 
 // DOM 준비 시 초기화
 function initializeApp() {
+    // 사용자 측정값 로드 (기본값보다 우선)
+    loadUserMeasuredOffsets();
+    
     const today = new Date();
     const todayString = formatDateForInput(today);
     
@@ -86,7 +127,7 @@ function initializeApp() {
     // 티켓팅 사이트 서버 시간 동기화 시작
     syncPlatformServerTimes();
     
-    // 1분마다 티켓팅 사이트 서버 시간 동기화
+    // 주기적으로 티켓팅 사이트 서버 시간 동기화 시도 (1분마다)
     setInterval(syncPlatformServerTimes, 60 * 1000);
     
     // 암전 모드 초기화
@@ -1057,16 +1098,19 @@ document.addEventListener('keypress', function(e) {
 
 // 서버 시간 동기화
 async function syncServerTime() {
-    // 티켓팅 사이트 서버 시간도 함께 동기화
-    await syncPlatformServerTimes();
+    // 티켓팅 사이트 서버 시간도 함께 동기화 (비동기로 실행, 블로킹하지 않음)
+    syncPlatformServerTimes();
     
     try {
         // 여러 서버에서 시간을 가져와서 평균 계산 (순차적으로 시도)
+        // 더 많은 공개 시간 API 추가로 정확도 향상
         const timeSources = [
             () => fetchServerTime('https://worldtimeapi.org/api/timezone/Asia/Seoul'),
             () => fetchServerTime('https://worldtimeapi.org/api/ip'),
             () => fetchServerTime('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Seoul'),
             () => fetchServerTime('https://api.ipgeolocation.io/timezone?apiKey=free&tz=Asia/Seoul'),
+            () => fetchServerTime('https://timezoneapi.io/api/timezone/?Asia/Seoul'),
+            () => fetchServerTime('https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Seoul'),
             () => fetchServerTimeFromHeaders(),
             () => fetchServerTimeFromNTP()
         ];
@@ -1395,6 +1439,8 @@ async function syncPlatformServerTimes() {
     });
     
     await Promise.allSettled(promises);
+    // 동기화 후 플랫폼 시간 업데이트 (실제 측정값이 있으면 반영)
+    updatePlatformTimes();
 }
 
 // 플랫폼별 시간 업데이트
@@ -1429,8 +1475,11 @@ function updatePlatformTimes() {
             const actualOffset = (actualServerTime - kstServerTime) / 1000;
             offsetValue = actualOffset;
             offsetText = `${actualOffset >= 0 ? '+' : ''}${actualOffset.toFixed(3)}초 (KST 대비)`;
+            
+            // 실제 측정값을 저장 (학습)
+            saveUserMeasuredOffset(platform.id, actualOffset);
         } else {
-            // 기본 보정값 사용 (KST 기준)
+            // 기본 보정값 사용 (KST 기준) - 사용자 측정값이 있으면 우선 사용
             platformTime = new Date(serverTime + (platform.offset * 1000));
             offsetText = `${platform.offset >= 0 ? '+' : ''}${platform.offset}초 (KST 대비)`;
         }
@@ -1449,7 +1498,15 @@ function updatePlatformTimes() {
         
         if (offsetEl) {
             offsetEl.textContent = offsetText;
-            offsetEl.className = `platform-offset ${offsetValue >= 0 ? 'positive' : 'negative'}`;
+            // 실제 측정값인지 기본값인지 구분
+            const isMeasured = platformServerTime !== null && timeSinceSync < 120000;
+            offsetEl.className = `platform-offset ${offsetValue >= 0 ? 'positive' : 'negative'} ${isMeasured ? 'measured' : 'default'}`;
+            // 기본값일 경우 툴팁으로 안내
+            if (!isMeasured) {
+                offsetEl.title = '기본 보정값 (실제 측정 불가: CORS 제한)';
+            } else {
+                offsetEl.title = '실제 측정값';
+            }
         }
     });
 }

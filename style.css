@@ -789,6 +789,15 @@ footer p:last-child {
     color: #4ade80;
 }
 
+.platform-offset.default {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.platform-offset.measured {
+    font-weight: 600;
+}
+
 /* 카운트다운 스타일 */
 .countdown-section {
     grid-column: span 2;
