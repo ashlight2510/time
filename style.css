@@ -581,6 +581,25 @@ footer p:last-child {
     
     .share-btn {
         width: 100%;
+        min-height: 44px;
+        padding: 10px 15px;
+        white-space: normal;
+        line-height: 1.4;
+    }
+    
+    .countdown-share-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .countdown-share-buttons .share-btn {
+        width: 100%;
+        min-width: auto;
+        min-height: 48px;
+        padding: 12px 15px;
+        font-size: 0.9em;
+        white-space: normal;
+        line-height: 1.4;
     }
     
     .detailed-time {
@@ -852,7 +871,13 @@ footer p:last-child {
 
 .countdown-share-buttons .share-btn {
     min-width: 150px;
-    height: 44px;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 15px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* 정확도 측정 */
@@ -1054,10 +1079,15 @@ body.dark-mode .countdown-label {
 }
 
 body.dark-mode .platform-item,
-body.dark-mode .accuracy-info,
-body.dark-mode .checklist-item {
+body.dark-mode .accuracy-info {
     background: #0a0a0a;
     border-color: #333;
+    color: #fff;
+}
+
+body.dark-mode .checklist-item {
+    background: #000000;
+    border-color: #1a1a1a;
     color: #fff;
 }
 
@@ -1128,6 +1158,18 @@ body.dark-mode .accuracy-value {
 
 body.dark-mode .checklist-item {
     color: #fff;
+    background: #000000;
+    border-left-color: #1a1a1a;
+}
+
+body.dark-mode .checklist-item:hover {
+    background: #0a0a0a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .checklist-item:has(input[type="checkbox"]:checked) {
+    background: #0d1b0d;
+    border-left-color: #4ade80;
 }
 
 body.dark-mode .checklist-item span {
@@ -1136,6 +1178,8 @@ body.dark-mode .checklist-item span {
 
 body.dark-mode .checklist-complete-message {
     color: #fff;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #2a2a3e;
 }
 
 body.dark-mode .complete-message-text {
@@ -1880,6 +1924,21 @@ body.widget-mode .ad-container {
 @media (max-width: 480px) {
     header h1 {
         font-size: 1.5em;
+    }
+    
+    .countdown-share-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .countdown-share-buttons .share-btn {
+        width: 100%;
+        min-width: auto;
+        min-height: 48px;
+        padding: 12px 15px;
+        font-size: 0.9em;
+        white-space: normal;
+        line-height: 1.4;
     }
     
     .subtitle {
