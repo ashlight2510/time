@@ -35,7 +35,7 @@ const platformSyncTimes = {
 const platformUrls = {
     melon: 'https://ticket.melon.com',
     interpark: 'https://tickets.interpark.com',
-    naver: 'https://ticket.book.naver.com',
+    naver: 'https://ticket.naver.com', // URL 수정
     yes24: 'https://ticket.yes24.com'
 };
 
