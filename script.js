@@ -2033,7 +2033,6 @@ function setupChecklistListeners() {
         if (!target || !target.matches('input[type="checkbox"]')) return;
 
         saveChecklist();
-        // 약간의 지연을 두고 확인 (상태 업데이트 후)
         setTimeout(() => {
             checkChecklistComplete();
         }, 10);
