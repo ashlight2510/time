@@ -490,6 +490,11 @@ function loadMemos() {
     const memos = getMemos();
     const listContainer = document.getElementById('memosList');
     
+    // 요소가 없으면 조용히 반환
+    if (!listContainer) {
+        return;
+    }
+    
     if (memos.length === 0) {
         listContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">저장된 메모가 없습니다.</p>';
         return;
@@ -1104,7 +1109,7 @@ async function syncServerTime() {
         setTimeout(syncServerTime, 5 * 60 * 1000);
         
     } catch (error) {
-        console.error('서버 시간 동기화 실패:', error);
+        // 네트워크 에러는 조용히 처리 (정상적인 상황일 수 있음)
         serverTimeOffset = 0;
     }
 }
@@ -1344,14 +1349,12 @@ async function fetchPlatformServerTime(platformId) {
         
         const dateHeader = response.headers.get('Date');
         if (!dateHeader) {
-            console.warn(`${platformId}: Date 헤더 없음`);
             return null;
         }
         
         // UTC 시간을 파싱
         const serverTimeUTC = new Date(dateHeader).getTime();
         if (isNaN(serverTimeUTC) || serverTimeUTC <= 0) {
-            console.warn(`${platformId}: Date 헤더 파싱 실패`);
             return null;
         }
         
@@ -1363,13 +1366,8 @@ async function fetchPlatformServerTime(platformId) {
         
         return correctedTime;
     } catch (error) {
-        // CORS 오류나 네트워크 오류
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            // CORS 제한으로 인해 직접 요청 불가 (정상적인 상황)
-            console.info(`${platformId}: CORS 제한으로 직접 요청 불가 (백엔드 프록시 필요)`);
-        } else {
-            console.warn(`${platformId} 서버 시간 가져오기 실패:`, error.message);
-        }
+        // CORS 오류나 네트워크 오류는 조용히 처리 (정상적인 상황)
+        // CORS 제한, 네트워크 에러, DNS 에러 등은 예상된 실패이므로 로그 출력하지 않음
         return null;
     }
 }
@@ -1387,7 +1385,6 @@ async function syncPlatformServerTimes() {
                 // 클라이언트 시간 기준으로 오프셋 저장
                 platformServerTimes[platformId] = serverTime - now;
                 platformSyncTimes[platformId] = now;
-                console.log(`${platformId} 서버 시간 동기화 성공`);
             } else {
                 // 실패 시 기본 보정값 사용
                 platformServerTimes[platformId] = null;
@@ -1994,50 +1991,31 @@ function checkChecklistComplete() {
     
     // 모든 체크박스가 체크되었는지 확인
     const checkboxArray = Array.from(checkboxes);
-    const checkedCount = checkboxArray.filter(cb => cb.checked).length;
     const allChecked = checkboxArray.length > 0 && checkboxArray.every(checkbox => checkbox.checked);
-    
-    console.log(`체크박스 총 개수: ${checkboxArray.length}, 체크된 개수: ${checkedCount}, 모두 체크됨: ${allChecked}`);
-    
-    // 각 체크박스 상태 로그
-    checkboxArray.forEach((cb, idx) => {
-        console.log(`  체크박스 ${idx + 1} (${cb.id}): ${cb.checked ? '체크됨' : '체크 안됨'}`);
-    });
     
     const messageEl = document.getElementById('checklistCompleteMessage');
     const messageTextEl = document.getElementById('completeMessageText');
     
-    if (!messageEl) {
-        console.error('checklistCompleteMessage 요소를 찾을 수 없습니다.');
+    if (!messageEl || !messageTextEl) {
         return;
     }
     
-    if (!messageTextEl) {
-        console.error('completeMessageText 요소를 찾을 수 없습니다.');
-        return;
-    }
-    
-    console.log(`메시지 요소 존재: ${!!messageEl}, 텍스트 요소 존재: ${!!messageTextEl}`);
-    console.log(`현재 show 클래스: ${messageEl.classList.contains('show')}`);
-    
+    // 모든 체크박스가 체크되었는지 확인
     if (allChecked && checkboxArray.length > 0) {
         // 랜덤 멘트 선택
         const randomMessage = checklistCompleteMessages[Math.floor(Math.random() * checklistCompleteMessages.length)];
         messageTextEl.textContent = randomMessage;
         
-        // 직접 스타일 설정
+        // 직접 스타일 설정으로 표시
         messageEl.style.display = 'block';
         messageEl.style.opacity = '1';
         messageEl.classList.add('show');
-        
-        console.log('✅ 완료 메시지 표시:', randomMessage);
-        console.log(`show 클래스 추가 후: ${messageEl.classList.contains('show')}`);
-        console.log(`computed display: ${window.getComputedStyle(messageEl).display}`);
     } else {
+        // 숨김 처리
         messageEl.style.display = 'none';
         messageEl.style.opacity = '0';
         messageEl.classList.remove('show');
-        console.log('❌ 완료 메시지 숨김 (모두 체크되지 않음)');
+        messageTextEl.textContent = '';
     }
 }
 
@@ -2049,15 +2027,11 @@ function setupChecklistListeners() {
         return;
     }
     
-    const totalCheckboxes = checklistSection.querySelectorAll('input[type="checkbox"]').length;
-    console.log(`체크리스트 리스너 설정: ${totalCheckboxes}개 체크박스 발견`);
-
     // 이벤트 위임으로 모든 체크박스에 리스너 추가
     checklistSection.addEventListener('change', (event) => {
         const target = event.target;
         if (!target || !target.matches('input[type="checkbox"]')) return;
 
-        console.log(`체크박스 상태 변경: ${target.id} = ${target.checked}`);
         saveChecklist();
         // 약간의 지연을 두고 확인 (상태 업데이트 후)
         setTimeout(() => {
