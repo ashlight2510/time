@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# 구글 봇
+User-agent: Googlebot
+Allow: /
+
+# 네이버 봇
+User-agent: Yeti
+Allow: /
+
+User-agent: NaverBot
+Allow: /
+
+# 사이트맵 위치
+Sitemap: https://time.ashlight.store/sitemap.xml
+

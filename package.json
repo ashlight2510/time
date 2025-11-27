@@ -1,0 +1,21 @@
+{
+  "name": "d-day-calculator",
+  "version": "1.0.0",
+  "description": "D-day 계산기 웹 애플리케이션",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s . -l 3000",
+    "dev": "serve -s . -l 3000"
+  },
+  "keywords": [
+    "d-day",
+    "calculator",
+    "date"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
