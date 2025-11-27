@@ -631,7 +631,6 @@ footer p:last-child {
     font-size: 4em;
     font-weight: bold;
     font-family: 'Courier New', monospace;
-    margin-bottom: 20px;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     letter-spacing: 5px;
 }
@@ -952,14 +951,14 @@ footer p:last-child {
     border-radius: 15px;
     text-align: center;
     box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-    display: none !important;
+    display: none;
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.5s ease;
 }
 
 .checklist-complete-message.show {
-    display: block !important;
+    display: block;
     opacity: 1;
     transform: translateY(0);
     animation: bounceIn 0.6s ease;
@@ -1223,16 +1222,25 @@ body.fullscreen-mode .server-time-section h2 {
 
 body.fullscreen-mode .time-selector-wrapper {
     margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
 }
 
 body.fullscreen-mode .time-selector-label {
     color: #fff;
+    font-size: 1em;
+    white-space: nowrap;
 }
 
 body.fullscreen-mode .time-selector {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.3);
+    padding: 12px 18px;
+    font-size: 1em;
+    min-width: 200px;
 }
 
 body.fullscreen-mode .time-selector:hover {
@@ -1251,6 +1259,41 @@ body.fullscreen-mode .time-selector option {
     color: #fff;
 }
 
+body.fullscreen-mode .server-time-controls {
+    display: none;
+}
+
+body.fullscreen-mode .sync-btn-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    font-size: 1em;
+    min-width: auto;
+    width: auto;
+    height: auto;
+    background: rgba(74, 222, 128, 0.2);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+body.fullscreen-mode .sync-btn-inline:hover {
+    background: rgba(74, 222, 128, 0.3);
+    border-color: rgba(74, 222, 128, 0.6);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+    color: #5ef08f;
+}
+
+body.fullscreen-mode .sync-btn-inline:active {
+    transform: scale(0.95);
+}
+
 body.fullscreen-mode .server-time-display {
     width: 100%;
     height: 100%;
@@ -1266,7 +1309,7 @@ body.fullscreen-mode .time-main {
     font-size: 8em;
 }
 
-/* 위젯 모드 */
+/* 위젯 모드 - 일반 모드 */
 body.widget-mode {
     position: fixed;
     top: 20px;
@@ -1274,17 +1317,26 @@ body.widget-mode {
     width: 420px;
     height: 320px;
     z-index: 10000;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    border: 1px solid rgba(74, 222, 128, 0.3);
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+    border: 2px solid rgba(74, 144, 226, 0.3);
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
-                0 0 0 1px rgba(74, 222, 128, 0.1) inset,
-                0 0 40px rgba(74, 222, 128, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 
+                0 0 0 1px rgba(74, 144, 226, 0.1) inset,
+                0 0 40px rgba(74, 144, 226, 0.1);
     backdrop-filter: blur(20px);
     overflow: hidden;
     resize: both;
     min-width: 320px;
     min-height: 240px;
+}
+
+/* 위젯 모드 - 암전 모드 */
+body.dark-mode.widget-mode {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    border: 2px solid rgba(74, 222, 128, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 0 0 1px rgba(74, 222, 128, 0.2) inset,
+                0 0 40px rgba(74, 222, 128, 0.15);
 }
 
 body.widget-mode .container {
@@ -1295,17 +1347,18 @@ body.widget-mode .container {
     box-shadow: none;
 }
 
+/* 위젯 모드 헤더 - 일반 모드 */
 body.widget-mode header {
     padding: 12px 15px;
     flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(74, 222, 128, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(74, 144, 226, 0.2);
 }
 
 body.widget-mode header h1 {
     font-size: 1.1em;
     margin-bottom: 4px;
-    color: #fff;
+    color: #1a1a1a;
     font-weight: 600;
     letter-spacing: -0.5px;
 }
@@ -1313,25 +1366,63 @@ body.widget-mode header h1 {
 body.widget-mode .subtitle {
     font-size: 0.7em;
     margin-bottom: 0;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.6);
 }
 
 body.widget-mode .header-controls {
     margin-top: 8px;
     gap: 6px;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
 }
 
 body.widget-mode .header-controls .btn {
     padding: 6px 10px;
     font-size: 0.7em;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: rgba(74, 144, 226, 0.1);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    color: #4a90e2;
+    font-weight: 600;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 body.widget-mode .header-controls .btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(74, 144, 226, 0.2);
+    border-color: rgba(74, 144, 226, 0.5);
+    color: #357abd;
+}
+
+/* 위젯 모드에서 전체화면 버튼 숨김 */
+body.widget-mode #fullscreenBtn {
+    display: none !important;
+}
+
+/* 위젯 모드 헤더 - 암전 모드 */
+body.dark-mode.widget-mode header {
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+body.dark-mode.widget-mode header h1 {
+    color: #fff;
+}
+
+body.dark-mode.widget-mode .subtitle {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.dark-mode.widget-mode .header-controls .btn {
+    background: rgba(74, 222, 128, 0.15);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+}
+
+body.dark-mode.widget-mode .header-controls .btn:hover {
+    background: rgba(74, 222, 128, 0.25);
+    border-color: rgba(74, 222, 128, 0.6);
+    color: #5ef08f;
 }
 
 body.widget-mode main {
@@ -1351,15 +1442,21 @@ body.widget-mode .server-time-section {
     background: transparent;
 }
 
+/* 위젯 모드 섹션 제목 - 일반 모드 */
 body.widget-mode .server-time-section h2 {
     font-size: 0.9em;
     margin-bottom: 12px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(0, 0, 0, 0.7);
     border: none;
     padding: 0;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* 위젯 모드 섹션 제목 - 암전 모드 */
+body.dark-mode.widget-mode .server-time-section h2 {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 body.widget-mode .server-time-display {
@@ -1382,21 +1479,39 @@ body.widget-mode .time-main {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #4a90e2;
 }
 
+/* 위젯 모드 시간 - 일반 모드 */
 body.widget-mode .time-hours,
 body.widget-mode .time-minutes,
-body.widget-mode .time-seconds,
-body.widget-mode .time-milliseconds {
+body.widget-mode .time-seconds {
     display: inline-block;
-    color: #4ade80;
-    text-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
+    color: #4a90e2;
+    text-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
 }
 
 body.widget-mode .time-milliseconds {
     font-size: 0.4em;
-    color: rgba(74, 222, 128, 0.8);
+    color: rgba(74, 144, 226, 0.7);
     margin-left: 2px;
+    display: inline-block;
+}
+
+/* 위젯 모드 시간 - 암전 모드 */
+body.dark-mode.widget-mode .time-main {
+    color: #4ade80;
+}
+
+body.dark-mode.widget-mode .time-hours,
+body.dark-mode.widget-mode .time-minutes,
+body.dark-mode.widget-mode .time-seconds {
+    color: #4ade80;
+    text-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
+}
+
+body.dark-mode.widget-mode .time-milliseconds {
+    color: rgba(74, 222, 128, 0.8);
 }
 
 body.widget-mode .time-status {
@@ -1420,29 +1535,58 @@ body.widget-mode .time-selector-wrapper {
     flex-wrap: nowrap;
 }
 
+/* 위젯 모드 셀렉터 - 일반 모드 */
 body.widget-mode .time-selector-label {
     font-size: 0.75em;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.7);
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 body.widget-mode .time-selector {
     flex: 1;
     padding: 8px 12px;
     font-size: 0.85em;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(74, 222, 128, 0.2);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(74, 144, 226, 0.3);
     border-radius: 8px;
-    color: #fff;
+    color: #1a1a1a;
     min-width: 0;
+    font-weight: 500;
 }
 
 body.widget-mode .time-selector:focus {
     outline: none;
-    border-color: rgba(74, 222, 128, 0.5);
+    border-color: rgba(74, 144, 226, 0.6);
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+body.widget-mode .time-selector option {
+    background: #fff;
+    color: #1a1a1a;
+}
+
+/* 위젯 모드 셀렉터 - 암전 모드 */
+body.dark-mode.widget-mode .time-selector-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.dark-mode.widget-mode .time-selector {
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #fff;
+}
+
+body.dark-mode.widget-mode .time-selector:focus {
+    border-color: rgba(74, 222, 128, 0.6);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+}
+
+body.dark-mode.widget-mode .time-selector option {
+    background: #1a1a1a;
+    color: #fff;
 }
 
 /* 일반 모드에서 인라인 버튼 숨김 */
@@ -1450,6 +1594,7 @@ body.widget-mode .time-selector:focus {
     display: none;
 }
 
+/* 위젯 모드 동기화 버튼 - 일반 모드 */
 body.widget-mode .sync-btn-inline {
     display: inline-flex;
     align-items: center;
@@ -1459,24 +1604,40 @@ body.widget-mode .sync-btn-inline {
     min-width: auto;
     width: auto;
     height: auto;
-    background: rgba(74, 222, 128, 0.15);
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    color: #4ade80;
+    background: rgba(74, 144, 226, 0.15);
+    border: 1px solid rgba(74, 144, 226, 0.4);
+    color: #4a90e2;
     border-radius: 8px;
     transition: all 0.2s ease;
     flex-shrink: 0;
     cursor: pointer;
+    font-weight: 600;
 }
 
 body.widget-mode .sync-btn-inline:hover {
-    background: rgba(74, 222, 128, 0.25);
-    border-color: rgba(74, 222, 128, 0.5);
+    background: rgba(74, 144, 226, 0.25);
+    border-color: rgba(74, 144, 226, 0.6);
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+    color: #357abd;
 }
 
 body.widget-mode .sync-btn-inline:active {
     transform: scale(0.95);
+}
+
+/* 위젯 모드 동기화 버튼 - 암전 모드 */
+body.dark-mode.widget-mode .sync-btn-inline {
+    background: rgba(74, 222, 128, 0.2);
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    color: #4ade80;
+}
+
+body.dark-mode.widget-mode .sync-btn-inline:hover {
+    background: rgba(74, 222, 128, 0.3);
+    border-color: rgba(74, 222, 128, 0.6);
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+    color: #5ef08f;
 }
 
 body.widget-mode section:not(.server-time-section) {

@@ -1905,12 +1905,23 @@ function toggleWidgetMode() {
 // 체크리스트 로드
 function loadChecklist() {
     const saved = localStorage.getItem('ticketingChecklist');
-    if (!saved) return;
+    if (!saved) {
+        // 저장된 데이터가 없어도 완료 확인은 해야 함
+        setTimeout(() => {
+            checkChecklistComplete();
+        }, 200);
+        return;
+    }
     
     try {
         const checklist = JSON.parse(saved);
         const checklistSection = document.querySelector('.checklist-section');
-        if (!checklistSection) return;
+        if (!checklistSection) {
+            setTimeout(() => {
+                checkChecklistComplete();
+            }, 200);
+            return;
+        }
         
         const checkboxes = checklistSection.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach((checkbox, index) => {
@@ -1919,10 +1930,15 @@ function loadChecklist() {
             }
         });
         
-        // 로드 후 완료 확인
-        setTimeout(checkChecklistComplete, 100);
+        // 로드 후 완료 확인 (충분한 지연)
+        setTimeout(() => {
+            checkChecklistComplete();
+        }, 200);
     } catch (error) {
         console.error('체크리스트 로드 실패:', error);
+        setTimeout(() => {
+            checkChecklistComplete();
+        }, 200);
     }
 }
 
@@ -1983,6 +1999,11 @@ function checkChecklistComplete() {
     
     console.log(`체크박스 총 개수: ${checkboxArray.length}, 체크된 개수: ${checkedCount}, 모두 체크됨: ${allChecked}`);
     
+    // 각 체크박스 상태 로그
+    checkboxArray.forEach((cb, idx) => {
+        console.log(`  체크박스 ${idx + 1} (${cb.id}): ${cb.checked ? '체크됨' : '체크 안됨'}`);
+    });
+    
     const messageEl = document.getElementById('checklistCompleteMessage');
     const messageTextEl = document.getElementById('completeMessageText');
     
@@ -1996,15 +2017,27 @@ function checkChecklistComplete() {
         return;
     }
     
-    if (allChecked) {
+    console.log(`메시지 요소 존재: ${!!messageEl}, 텍스트 요소 존재: ${!!messageTextEl}`);
+    console.log(`현재 show 클래스: ${messageEl.classList.contains('show')}`);
+    
+    if (allChecked && checkboxArray.length > 0) {
         // 랜덤 멘트 선택
         const randomMessage = checklistCompleteMessages[Math.floor(Math.random() * checklistCompleteMessages.length)];
         messageTextEl.textContent = randomMessage;
+        
+        // 직접 스타일 설정
+        messageEl.style.display = 'block';
+        messageEl.style.opacity = '1';
         messageEl.classList.add('show');
-        console.log('완료 메시지 표시:', randomMessage);
+        
+        console.log('✅ 완료 메시지 표시:', randomMessage);
+        console.log(`show 클래스 추가 후: ${messageEl.classList.contains('show')}`);
+        console.log(`computed display: ${window.getComputedStyle(messageEl).display}`);
     } else {
+        messageEl.style.display = 'none';
+        messageEl.style.opacity = '0';
         messageEl.classList.remove('show');
-        console.log('완료 메시지 숨김');
+        console.log('❌ 완료 메시지 숨김 (모두 체크되지 않음)');
     }
 }
 
@@ -2019,16 +2052,32 @@ function setupChecklistListeners() {
     const totalCheckboxes = checklistSection.querySelectorAll('input[type="checkbox"]').length;
     console.log(`체크리스트 리스너 설정: ${totalCheckboxes}개 체크박스 발견`);
 
+    // 이벤트 위임으로 모든 체크박스에 리스너 추가
     checklistSection.addEventListener('change', (event) => {
         const target = event.target;
         if (!target || !target.matches('input[type="checkbox"]')) return;
 
         console.log(`체크박스 상태 변경: ${target.id} = ${target.checked}`);
         saveChecklist();
-        checkChecklistComplete();
+        // 약간의 지연을 두고 확인 (상태 업데이트 후)
+        setTimeout(() => {
+            checkChecklistComplete();
+        }, 10);
     });
 
-    // 초기 로드 시에도 확인
-    checkChecklistComplete();
-    setTimeout(checkChecklistComplete, 200);
+    // 클릭 이벤트도 추가 (label 클릭 시에도 동작)
+    checklistSection.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target && target.matches('input[type="checkbox"]')) {
+            setTimeout(() => {
+                saveChecklist();
+                checkChecklistComplete();
+            }, 10);
+        }
+    });
+
+    // 초기 로드 시에도 확인 (체크리스트 로드 후)
+    setTimeout(() => {
+        checkChecklistComplete();
+    }, 300);
 }
