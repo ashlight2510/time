@@ -13,5 +13,5 @@ User-agent: NaverBot
 Allow: /
 
 # 사이트맵 위치
-Sitemap: https://time.ashlight.store/sitemap.xml
+Sitemap: https://time.funnyfunny.cloud/sitemap.xml
 

@@ -100,14 +100,14 @@ npx serve -p 8080
 
 Render.com에서:
 1. Settings → Custom Domain
-2. 도메인 추가: `api.time.ashlight.store`
+2. 도메인 추가: `api.time.funnyfunny.cloud`
 3. DNS 설정 안내에 따라 CNAME 레코드 추가
 
 ### 프론트엔드 도메인
 
 GitHub Pages에서:
 1. 저장소 Settings → Pages → Custom domain
-2. 도메인 추가: `time.ashlight.store`
+2. 도메인 추가: `time.funnyfunny.cloud`
 3. DNS 설정 안내에 따라 A 레코드 또는 CNAME 레코드 추가
 
 ## 문제 해결
