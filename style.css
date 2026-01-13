@@ -84,6 +84,31 @@ header h1 {
     margin-bottom: 15px;
 }
 
+.lang-switch {
+    display: inline-flex;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    margin: 0 auto 12px;
+}
+
+.lang-switch button {
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: transparent;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.lang-switch button.active {
+    background: rgba(255, 255, 255, 0.32);
+}
+
 .theme-selector {
     display: flex;
     justify-content: center;

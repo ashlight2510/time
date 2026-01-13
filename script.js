@@ -6,6 +6,278 @@ const API_BASE_URL = window.API_BASE_URL ||
         ? 'http://localhost:3000' 
         : ''); // 프로덕션에서는 빈 문자열 (상대 경로 사용) 또는 절대 URL 설정
 
+const translations = {
+    ko: {
+        metaTitle: '예매는타이밍 | 티켓팅용 밀리초 단위 정확도 서버시계',
+        metaDescription: '티켓팅용 공식 서버시계. 한국 표준시(KST) 밀리초 단위 정확도, 오차 보정, 카운트다운, 티켓팅 사이트별 시간 비교, 화면 고정 모드 제공. 멜론, 인터파크, 네이버 티켓팅 성공률을 높이세요.',
+        metaOgTitle: '예매는타이밍 | 티켓팅용 밀리초 단위 정확도 서버시계',
+        metaOgDescription: '티켓팅용 공식 서버시계. 한국 표준시(KST) 밀리초 단위 정확도, 오차 보정, 카운트다운, 티켓팅 사이트별 시간 비교 제공.',
+        metaTwitterTitle: '예매는타이밍 | 티켓팅용 서버 시계',
+        metaTwitterDescription: '티켓팅용 공식 서버시계. 밀리초 단위 정확도, 오차 보정, 카운트다운 제공.',
+        heroTitle: '⏰ 예매는타이밍',
+        heroSubtitle: '티켓팅용 밀리초 단위 정확도 서버시계',
+        btnFullscreen: '📺 전체화면',
+        btnExitFullscreen: '🚪 전체화면 종료',
+        btnDarkMode: '🌙 암전 모드',
+        btnLightMode: '☀️ 일반 모드',
+        btnWidgetMode: '📱 위젯 모드',
+        btnWidgetExit: '❌ 위젯 종료',
+        serverTimeTitle: '🕐 서버 시계 (KST)',
+        timeDisplayLabel: '시간 표시:',
+        timeSourceServer: '서버 시계 (기본)',
+        timeSourceMelon: '멜론',
+        timeSourceInterpark: '인터파크',
+        timeSourceYes24: '예스24',
+        btnSyncTitle: '오차 보정',
+        btnSyncText: '🔄 오차 보정',
+        platformTitle: '🎫 티켓팅 사이트별 시간 비교',
+        platformMelon: '멜론',
+        platformInterpark: '인터파크',
+        platformYes24: '예스24',
+        countdownTitle: '⏳ 티켓팅 카운트다운',
+        countdownDateLabel: '티켓팅 날짜',
+        countdownTimeLabel: '티켓팅 시간',
+        btnStartCountdown: '카운트다운 시작',
+        countdownStartHint: '카운트다운을 시작하세요',
+        btnShareKakao: '💬 카카오톡 공유',
+        btnShareInstagram: '📷 인스타그램 공유',
+        btnCopyCountdown: '📋 복사하기',
+        checklistTitle: '✅ 티켓팅 준비 체크리스트',
+        check1: '티켓팅 사이트 로그인 미리 해두기',
+        check2: 'WiFi 5GHz 또는 LTE 네트워크 사용',
+        check3: '다른 프로그램/앱 종료 (성능 최적화)',
+        check4: '결제창 팝업 허용 설정 확인',
+        check5: '결제 수단 미리 등록/확인',
+        check6: '자동완성 기능 활성화 (주소, 전화번호 등)',
+        check7: '쿠키 및 캐시 허용 설정 확인',
+        check8: '신용카드 정보 미리 준비 (카드번호, CVC 등)',
+        check9: '티켓팅 사이트 결제 페이지 미리 열어두기',
+        check10: '될거라는 마음가짐 💪',
+        footerRights: '. All rights reserved.',
+        timeTitleServer: '서버 시계 (KST)',
+        timeTitleMelon: '멜론 시계',
+        timeTitleInterpark: '인터파크 시계',
+        timeTitleYes24: '예스24 시계',
+        offsetText: '{value}초 (KST 대비)',
+        offsetTooltipDefault: '기본 보정값: {value}초 (실제 측정 불가: CORS 제한)',
+        offsetTooltipMeasured: '실제 측정값: {value}초 ({seconds}초 전 측정)',
+        measuring: '측정 중...',
+        measureFailed: '측정 실패',
+        networkBest: 'WiFi 5GHz (최적)',
+        networkGood: 'WiFi 5GHz / LTE (양호)',
+        networkPoor: 'LTE / WiFi 2.4GHz (재연결 권장)',
+        alertSelectDate: '티켓팅 날짜를 선택해주세요.',
+        alertInvalidDateTime: '올바른 날짜와 시간을 입력해주세요.',
+        countdownZero: '00시간 00분 00초',
+        countdownReached: '티켓팅 시간입니다! 🎫',
+        countdownUntil: '{date} {time}까지',
+        countdownTimeFormat: '{h}시간 {m}분 {s}초',
+        alertStartCountdownFirst: '카운트다운을 먼저 시작해주세요.',
+        alertTicketTimePassed: '티켓팅 시간이 지났습니다.',
+        countdownShareTitle: '티켓팅 카운트다운',
+        countdownShareText: '⏳ 티켓팅 카운트다운\n\n{date} {time}까지\n남은 시간: {remaining}\n\n예매는타이밍으로 정확한 시간 확인! 🎫',
+        countdownShareTextWithUrl: '⏳ 티켓팅 카운트다운\n\n{date} {time}까지\n남은 시간: {remaining}\n\n예매는타이밍으로 정확한 시간 확인! 🎫\n{url}',
+        alertCopied: '텍스트가 클립보드에 복사되었습니다!',
+        alertCopiedKakao: '텍스트가 클립보드에 복사되었습니다! 카카오톡에서 공유해주세요.',
+        alertCopiedInstagramApp: '텍스트가 클립보드에 복사되었습니다!\n인스타그램 앱이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.',
+        alertCopiedInstagramWeb: '텍스트가 클립보드에 복사되었습니다!\n인스타그램 웹이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.',
+        alertCopyFailed: '복사에 실패했습니다. 다시 시도해주세요.',
+        alertCountdownCopied: '카운트다운 정보가 클립보드에 복사되었습니다!',
+        checklistCompleteMessages: [
+            '🎉 행운을 빕니다! 티켓팅 성공하세요!',
+            '✨ 모든 준비 완료! 이번엔 꼭 성공할 거예요!',
+            '🚀 완벽한 준비! 티켓팅 대박 나세요!',
+            '💪 모든 체크 완료! 당신의 티켓팅을 응원합니다!',
+            '🎫 준비 끝! 이제 티켓팅만 하면 됩니다!',
+            '🌟 완벽한 준비! 좋은 결과 있으시길!',
+            '🔥 모든 준비 완료! 티켓팅 화이팅!',
+            '💯 완벽합니다! 티켓팅 성공 기원합니다!',
+            '🎊 준비 완료! 행운이 함께하길!',
+            '⭐ 모든 체크 완료! 티켓팅 대박 나세요!',
+            '🎁 완벽한 준비! 좋은 결과 기대합니다!',
+            '🌈 모든 준비 끝! 티켓팅 성공하세요!',
+            '🎯 완벽합니다! 이번엔 꼭 성공할 거예요!',
+            '💎 모든 체크 완료! 티켓팅 화이팅!',
+            '🎪 준비 끝! 행운을 빕니다!',
+            '🏆 완벽한 준비! 티켓팅 대박 나세요!',
+            '🎨 모든 준비 완료! 좋은 결과 있으시길!',
+            '🎭 완벽합니다! 티켓팅 성공 기원합니다!',
+            '🎬 준비 끝! 이제 티켓팅만 하면 됩니다!',
+            '🎸 모든 체크 완료! 티켓팅 화이팅!'
+        ]
+    },
+    en: {
+        metaTitle: 'Ticketing Timing | Millisecond-accurate server clock',
+        metaDescription: 'Official ticketing server clock with KST millisecond accuracy, offset calibration, countdown, platform time comparison, and screen pin mode.',
+        metaOgTitle: 'Ticketing Timing | Millisecond-accurate server clock',
+        metaOgDescription: 'Official ticketing server clock with KST millisecond accuracy, offset calibration, countdown, and platform time comparison.',
+        metaTwitterTitle: 'Ticketing Timing | Ticketing server clock',
+        metaTwitterDescription: 'Official ticketing server clock with millisecond accuracy, offset calibration, and countdown.',
+        heroTitle: '⏰ Ticketing Timing',
+        heroSubtitle: 'Millisecond-accurate server clock for ticketing',
+        btnFullscreen: '📺 Fullscreen',
+        btnExitFullscreen: '🚪 Exit fullscreen',
+        btnDarkMode: '🌙 Dark mode',
+        btnLightMode: '☀️ Light mode',
+        btnWidgetMode: '📱 Widget mode',
+        btnWidgetExit: '❌ Exit widget',
+        serverTimeTitle: '🕐 Server clock (KST)',
+        timeDisplayLabel: 'Time source:',
+        timeSourceServer: 'Server clock (default)',
+        timeSourceMelon: 'Melon',
+        timeSourceInterpark: 'Interpark',
+        timeSourceYes24: 'Yes24',
+        btnSyncTitle: 'Calibrate offset',
+        btnSyncText: '🔄 Calibrate offset',
+        platformTitle: '🎫 Ticketing platform time comparison',
+        platformMelon: 'Melon',
+        platformInterpark: 'Interpark',
+        platformYes24: 'Yes24',
+        countdownTitle: '⏳ Ticketing countdown',
+        countdownDateLabel: 'Ticketing date',
+        countdownTimeLabel: 'Ticketing time',
+        btnStartCountdown: 'Start countdown',
+        countdownStartHint: 'Start the countdown',
+        btnShareKakao: '💬 Share to KakaoTalk',
+        btnShareInstagram: '📷 Share to Instagram',
+        btnCopyCountdown: '📋 Copy',
+        checklistTitle: '✅ Ticketing prep checklist',
+        check1: 'Log in to the ticketing site in advance',
+        check2: 'Use WiFi 5GHz or LTE network',
+        check3: 'Close other programs/apps (optimize performance)',
+        check4: 'Allow payment popups',
+        check5: 'Register/confirm payment method',
+        check6: 'Enable autofill (address, phone, etc.)',
+        check7: 'Allow cookies and cache',
+        check8: 'Prepare credit card info (number, CVC, etc.)',
+        check9: 'Open payment page in advance',
+        check10: 'Stay confident 💪',
+        footerRights: '. All rights reserved.',
+        timeTitleServer: 'Server clock (KST)',
+        timeTitleMelon: 'Melon clock',
+        timeTitleInterpark: 'Interpark clock',
+        timeTitleYes24: 'Yes24 clock',
+        offsetText: '{value}s vs KST',
+        offsetTooltipDefault: 'Default offset: {value}s (measurement blocked by CORS)',
+        offsetTooltipMeasured: 'Measured offset: {value}s (measured {seconds}s ago)',
+        measuring: 'Measuring...',
+        measureFailed: 'Measurement failed',
+        networkBest: 'WiFi 5GHz (best)',
+        networkGood: 'WiFi 5GHz / LTE (ok)',
+        networkPoor: 'LTE / WiFi 2.4GHz (reconnect recommended)',
+        alertSelectDate: 'Select a ticketing date.',
+        alertInvalidDateTime: 'Enter a valid date and time.',
+        countdownZero: '00h 00m 00s',
+        countdownReached: 'Ticketing time! 🎫',
+        countdownUntil: 'Until {date} {time}',
+        countdownTimeFormat: '{h}h {m}m {s}s',
+        alertStartCountdownFirst: 'Start the countdown first.',
+        alertTicketTimePassed: 'Ticketing time has passed.',
+        countdownShareTitle: 'Ticketing countdown',
+        countdownShareText: '⏳ Ticketing countdown\n\nUntil {date} {time}\nRemaining: {remaining}\n\nCheck accurate time with Ticketing Timing! 🎫',
+        countdownShareTextWithUrl: '⏳ Ticketing countdown\n\nUntil {date} {time}\nRemaining: {remaining}\n\nCheck accurate time with Ticketing Timing! 🎫\n{url}',
+        alertCopied: 'Text copied to clipboard!',
+        alertCopiedKakao: 'Text copied to clipboard! Share it on KakaoTalk.',
+        alertCopiedInstagramApp: 'Text copied to clipboard!\nWhen Instagram opens, paste it into your story or post.',
+        alertCopiedInstagramWeb: 'Text copied to clipboard!\nWhen Instagram web opens, paste it into your story or post.',
+        alertCopyFailed: 'Copy failed. Please try again.',
+        alertCountdownCopied: 'Countdown info copied to clipboard!',
+        checklistCompleteMessages: [
+            '🎉 Good luck! You will get the tickets!',
+            '✨ All set! This time you will succeed!',
+            '🚀 Perfect prep! Big win on ticketing!',
+            '💪 Checklist complete! We are rooting for you!',
+            '🎫 Prep done! Now just grab the tickets!',
+            '🌟 Perfect prep! Wishing you good results!',
+            '🔥 All ready! Ticketing fighting!',
+            '💯 Perfect! Wishing you success!',
+            '🎊 All set! Good luck!',
+            '⭐ Checklist complete! Big win on ticketing!',
+            '🎁 Perfect prep! Fingers crossed!',
+            '🌈 All ready! Wishing you success!',
+            '🎯 Perfect! You will nail it!',
+            '💎 Checklist complete! Ticketing fighting!',
+            '🎪 Prep done! Good luck!',
+            '🏆 Perfect prep! Big win on ticketing!',
+            '🎨 All ready! Wishing you good results!',
+            '🎭 Perfect! Wishing you success!',
+            '🎬 Prep done! Now just ticketing!',
+            '🎸 Checklist complete! Ticketing fighting!'
+        ]
+    }
+};
+
+let currentLang = 'ko';
+
+function t(key, vars = {}) {
+    const table = translations[currentLang] || translations.ko;
+    const template = table[key] ?? translations.ko[key] ?? key;
+    if (Array.isArray(template)) return template;
+    return template.replace(/\{(\w+)\}/g, (_, token) =>
+        vars[token] !== undefined ? vars[token] : `{${token}}`
+    );
+}
+
+function applyTranslations() {
+    document.title = t('metaTitle');
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', t('metaDescription'));
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', t('metaOgTitle'));
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', t('metaOgDescription'));
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.setAttribute('content', t('metaTwitterTitle'));
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc) twitterDesc.setAttribute('content', t('metaTwitterDescription'));
+
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        el.setAttribute('title', t(el.dataset.i18nTitle));
+    });
+}
+
+function setLang(lang, options = {}) {
+    const nextLang = translations[lang] ? lang : 'ko';
+    currentLang = nextLang;
+    document.documentElement.lang = nextLang;
+    localStorage.setItem('preferredLang', nextLang);
+    document.querySelectorAll('.lang-switch button').forEach((button) => {
+        button.classList.toggle('active', button.dataset.lang === nextLang);
+    });
+    applyTranslations();
+    updateTimeSourceTitle();
+    updateCountdownLabels();
+    syncModeButtons();
+
+    if (options.updateUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', nextLang);
+        window.history.replaceState({}, '', url);
+    }
+}
+
+function detectLang() {
+    const params = new URLSearchParams(window.location.search);
+    const paramLang = params.get('lang');
+    if (translations[paramLang]) return paramLang;
+    const stored = localStorage.getItem('preferredLang');
+    if (translations[stored]) return stored;
+    const browser = navigator.language?.toLowerCase() || '';
+    return browser.startsWith('en') ? 'en' : 'ko';
+}
+
+function initLanguage() {
+    document.querySelectorAll('.lang-switch button').forEach((button) => {
+        button.addEventListener('click', () => {
+            setLang(button.dataset.lang, { updateUrl: true });
+        });
+    });
+    setLang(detectLang(), { updateUrl: false });
+}
+
 // 서버 시간 관련 전역 변수
 let serverTimeOffset = 0; // 서버 시간과 클라이언트 시간의 차이 (밀리초)
 let serverTimeSyncTime = 0; // 마지막 동기화 시점의 클라이언트 시간
@@ -91,6 +363,7 @@ const platformUrls = {
 
 // DOM 준비 시 초기화
 function initializeApp() {
+    initLanguage();
     // 사용자 측정값 로드 (기본값보다 우선)
     loadUserMeasuredOffsets();
     
@@ -147,7 +420,7 @@ function initializeApp() {
     if (savedDarkMode) {
         document.body.classList.add('dark-mode');
         const btn = document.getElementById('darkModeBtn');
-        if (btn) btn.textContent = '☀️ 일반 모드';
+        if (btn) btn.textContent = t('btnLightMode');
     }
     
     // 위젯 모드 초기화
@@ -161,7 +434,7 @@ function initializeApp() {
         if (!document.fullscreenElement) {
             document.body.classList.remove('fullscreen-mode');
             const btn = document.getElementById('fullscreenBtn');
-            if (btn) btn.textContent = '📺 전체화면';
+            if (btn) btn.textContent = t('btnFullscreen');
         }
     });
     
@@ -208,12 +481,57 @@ function formatDateForInput(date) {
 
 // 날짜를 한국어 형식으로 포맷팅
 function formatDateKorean(date) {
+    if (currentLang === 'en') {
+        return new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'short'
+        }).format(date);
+    }
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     const weekday = weekdays[date.getDay()];
     return `${year}년 ${month}월 ${day}일 (${weekday})`;
+}
+
+function formatCountdownText(hours, minutes, seconds) {
+    const h = String(hours).padStart(2, '0');
+    const m = String(minutes).padStart(2, '0');
+    const s = String(seconds).padStart(2, '0');
+    return t('countdownTimeFormat', { h, m, s });
+}
+
+function updateCountdownLabels() {
+    const countdownLabelEl = document.getElementById('countdownLabel');
+    if (countdownLabelEl && !window.countdownInfo) {
+        countdownLabelEl.textContent = t('countdownStartHint');
+    }
+}
+
+function syncModeButtons() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (fullscreenBtn) {
+        fullscreenBtn.textContent = document.fullscreenElement
+            ? t('btnExitFullscreen')
+            : t('btnFullscreen');
+    }
+
+    const darkBtn = document.getElementById('darkModeBtn');
+    if (darkBtn) {
+        darkBtn.textContent = document.body.classList.contains('dark-mode')
+            ? t('btnLightMode')
+            : t('btnDarkMode');
+    }
+
+    const widgetBtn = document.getElementById('widgetBtn');
+    if (widgetBtn) {
+        widgetBtn.textContent = document.body.classList.contains('widget-mode')
+            ? t('btnWidgetExit')
+            : t('btnWidgetMode');
+    }
 }
 
 // 상세 시간 계산 (일, 시간, 분, 초)
@@ -1365,13 +1683,13 @@ function updateTimeSourceTitle() {
     if (!titleEl) return;
     
     const sourceNames = {
-        'server': '서버 시계 (KST)',
-        'melon': '멜론 시계',
-        'interpark': '인터파크 시계',
-        'yes24': '예스24 시계'
+        server: t('timeTitleServer'),
+        melon: t('timeTitleMelon'),
+        interpark: t('timeTitleInterpark'),
+        yes24: t('timeTitleYes24')
     };
     
-    const title = sourceNames[currentTimeSource] || '서버 시계 (KST)';
+    const title = sourceNames[currentTimeSource] || t('timeTitleServer');
     titleEl.textContent = `🕐 ${title}`;
 }
 
@@ -1623,14 +1941,16 @@ function updatePlatformTimes() {
             const kstServerTime = now + serverTimeOffset;
             const actualOffset = (actualServerTime - kstServerTime) / 1000;
             offsetValue = actualOffset;
-            offsetText = `${actualOffset >= 0 ? '+' : ''}${actualOffset.toFixed(3)}초 (KST 대비)`;
+            const formattedOffset = `${actualOffset >= 0 ? '+' : ''}${actualOffset.toFixed(3)}`;
+            offsetText = t('offsetText', { value: formattedOffset });
             
             // 실제 측정값을 저장 (학습)
             saveUserMeasuredOffset(platform.id, actualOffset);
         } else {
             // 기본 보정값 사용 (KST 기준) - 사용자 측정값이 있으면 우선 사용
             platformTime = new Date(serverTime + (platform.offset * 1000));
-            offsetText = `${platform.offset >= 0 ? '+' : ''}${platform.offset}초 (KST 대비)`;
+            const formattedOffset = `${platform.offset >= 0 ? '+' : ''}${platform.offset}`;
+            offsetText = t('offsetText', { value: formattedOffset });
         }
         
         const hours = String(platformTime.getHours()).padStart(2, '0');
@@ -1652,9 +1972,14 @@ function updatePlatformTimes() {
             offsetEl.className = `platform-offset ${offsetValue >= 0 ? 'positive' : 'negative'} ${isMeasured ? 'measured' : 'default'}`;
             // 기본값일 경우 툴팁으로 안내
             if (!isMeasured) {
-                offsetEl.title = `기본 보정값: ${platform.offset}초 (실제 측정 불가: CORS 제한)`;
+                offsetEl.title = t('offsetTooltipDefault', {
+                    value: platform.offset
+                });
             } else {
-                offsetEl.title = `실제 측정값: ${offsetValue.toFixed(3)}초 (${Math.floor(timeSinceSync / 1000)}초 전 측정)`;
+                offsetEl.title = t('offsetTooltipMeasured', {
+                    value: offsetValue.toFixed(3),
+                    seconds: Math.floor(timeSinceSync / 1000)
+                });
             }
         }
     });
@@ -1666,9 +1991,9 @@ async function measureAccuracy() {
     const currentPingEl = document.getElementById('currentPing');
     const recommendedNetworkEl = document.getElementById('recommendedNetwork');
     
-    if (deviceErrorEl) deviceErrorEl.textContent = '측정 중...';
-    if (currentPingEl) currentPingEl.textContent = '측정 중...';
-    if (recommendedNetworkEl) recommendedNetworkEl.textContent = '측정 중...';
+    if (deviceErrorEl) deviceErrorEl.textContent = t('measuring');
+    if (currentPingEl) currentPingEl.textContent = t('measuring');
+    if (recommendedNetworkEl) recommendedNetworkEl.textContent = t('measuring');
     
     try {
         // Ping 측정
@@ -1714,22 +2039,22 @@ async function measureAccuracy() {
         
         if (recommendedNetworkEl) {
             if (avgPing < 30) {
-                recommendedNetworkEl.textContent = 'WiFi 5GHz (최적)';
+                recommendedNetworkEl.textContent = t('networkBest');
                 recommendedNetworkEl.className = 'accuracy-value good';
             } else if (avgPing < 80) {
-                recommendedNetworkEl.textContent = 'WiFi 5GHz / LTE (양호)';
+                recommendedNetworkEl.textContent = t('networkGood');
                 recommendedNetworkEl.className = 'accuracy-value warning';
             } else {
-                recommendedNetworkEl.textContent = 'LTE / WiFi 2.4GHz (재연결 권장)';
+                recommendedNetworkEl.textContent = t('networkPoor');
                 recommendedNetworkEl.className = 'accuracy-value bad';
             }
         }
         
     } catch (error) {
         console.error('정확도 측정 실패:', error);
-        if (deviceErrorEl) deviceErrorEl.textContent = '측정 실패';
-        if (currentPingEl) currentPingEl.textContent = '측정 실패';
-        if (recommendedNetworkEl) recommendedNetworkEl.textContent = '측정 실패';
+        if (deviceErrorEl) deviceErrorEl.textContent = t('measureFailed');
+        if (currentPingEl) currentPingEl.textContent = t('measureFailed');
+        if (recommendedNetworkEl) recommendedNetworkEl.textContent = t('measureFailed');
     }
 }
 
@@ -1746,7 +2071,7 @@ function startCountdown() {
     const timeStr = countdownTimeInput.value || '00:00';
     
     if (!dateStr) {
-        alert('티켓팅 날짜를 선택해주세요.');
+        alert(t('alertSelectDate'));
         return;
     }
     
@@ -1754,7 +2079,7 @@ function startCountdown() {
     const targetTime = targetDateTime.getTime();
     
     if (isNaN(targetTime)) {
-        alert('올바른 날짜와 시간을 입력해주세요.');
+        alert(t('alertInvalidDateTime'));
         return;
     }
     
@@ -1770,11 +2095,11 @@ function startCountdown() {
         
         if (diff <= 0) {
             if (countdownMainEl) {
-                countdownMainEl.textContent = '00시간 00분 00초';
+                countdownMainEl.textContent = t('countdownZero');
                 countdownMainEl.className = 'countdown-main danger';
             }
             if (countdownLabelEl) {
-                countdownLabelEl.textContent = '티켓팅 시간입니다! 🎫';
+                countdownLabelEl.textContent = t('countdownReached');
             }
             clearInterval(countdownInterval);
             return;
@@ -1791,7 +2116,7 @@ function startCountdown() {
         const millisecondsStr = String(milliseconds).padStart(3, '0');
         
         if (countdownMainEl) {
-            countdownMainEl.textContent = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+            countdownMainEl.textContent = formatCountdownText(hours, minutes, seconds);
             
             // 10초 이하일 때 빨간색, 1분 이하일 때 노란색
             if (diff < 10000) {
@@ -1805,7 +2130,10 @@ function startCountdown() {
         
         if (countdownLabelEl) {
             const targetDateStr = formatDateKorean(targetDateTime);
-            countdownLabelEl.textContent = `${targetDateStr} ${timeStr}까지`;
+            countdownLabelEl.textContent = t('countdownUntil', {
+                date: targetDateStr,
+                time: timeStr
+            });
         }
         
         // 공유 버튼 표시
@@ -1832,7 +2160,7 @@ function startCountdown() {
 // 카운트다운 카카오톡 공유
 function shareCountdownToKakao() {
     if (!window.countdownInfo) {
-        alert('카운트다운을 먼저 시작해주세요.');
+        alert(t('alertStartCountdownFirst'));
         return;
     }
     
@@ -1841,7 +2169,7 @@ function shareCountdownToKakao() {
     const diff = targetTime - now;
     
     if (diff <= 0) {
-        alert('티켓팅 시간이 지났습니다.');
+        alert(t('alertTicketTimePassed'));
         return;
     }
     
@@ -1853,32 +2181,36 @@ function shareCountdownToKakao() {
     const minutesStr = String(minutes).padStart(2, '0');
     const secondsStr = String(seconds).padStart(2, '0');
     
-    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const countdownText = formatCountdownText(hours, minutes, seconds);
     const targetDate = new Date(`${date}T${time}:00`);
     const dateStr = formatDateKorean(targetDate);
     
-    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫`;
+    const shareText = t('countdownShareText', {
+        date: dateStr,
+        time,
+        remaining: countdownText
+    });
     
     if (navigator.share) {
         navigator.share({
-            title: '티켓팅 카운트다운',
+            title: t('countdownShareTitle'),
             text: shareText,
             url: window.location.href
         }).catch(err => {
             console.log('공유 실패:', err);
             copyToClipboard(shareText);
-            alert('텍스트가 클립보드에 복사되었습니다!');
+            alert(t('alertCopied'));
         });
     } else {
         copyToClipboard(shareText);
-        alert('텍스트가 클립보드에 복사되었습니다! 카카오톡에서 공유해주세요.');
+        alert(t('alertCopiedKakao'));
     }
 }
 
 // 카운트다운 인스타그램 공유
 function shareCountdownToInstagram() {
     if (!window.countdownInfo) {
-        alert('카운트다운을 먼저 시작해주세요.');
+        alert(t('alertStartCountdownFirst'));
         return;
     }
     
@@ -1887,7 +2219,7 @@ function shareCountdownToInstagram() {
     const diff = targetTime - now;
     
     if (diff <= 0) {
-        alert('티켓팅 시간이 지났습니다.');
+        alert(t('alertTicketTimePassed'));
         return;
     }
     
@@ -1899,11 +2231,16 @@ function shareCountdownToInstagram() {
     const minutesStr = String(minutes).padStart(2, '0');
     const secondsStr = String(seconds).padStart(2, '0');
     
-    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const countdownText = formatCountdownText(hours, minutes, seconds);
     const targetDate = new Date(`${date}T${time}:00`);
     const dateStr = formatDateKorean(targetDate);
     
-    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫\n${window.location.href}`;
+    const shareText = t('countdownShareTextWithUrl', {
+        date: dateStr,
+        time,
+        remaining: countdownText,
+        url: window.location.href
+    });
     
     // 클립보드에 복사
     copyToClipboard(shareText).then(() => {
@@ -1925,21 +2262,21 @@ function shareCountdownToInstagram() {
                 }
             }, 2000);
             
-            alert('텍스트가 클립보드에 복사되었습니다!\n인스타그램 앱이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.');
+            alert(t('alertCopiedInstagramApp'));
         } else {
             // 데스크톱에서는 인스타그램 웹 열기
             window.open('https://www.instagram.com/', '_blank');
-            alert('텍스트가 클립보드에 복사되었습니다!\n인스타그램 웹이 열리면 스토리나 게시물에 붙여넣어 공유해주세요.');
+            alert(t('alertCopiedInstagramWeb'));
         }
     }).catch(() => {
-        alert('복사에 실패했습니다. 다시 시도해주세요.');
+        alert(t('alertCopyFailed'));
     });
 }
 
 // 카운트다운 복사하기
 function copyCountdown() {
     if (!window.countdownInfo) {
-        alert('카운트다운을 먼저 시작해주세요.');
+        alert(t('alertStartCountdownFirst'));
         return;
     }
     
@@ -1948,7 +2285,7 @@ function copyCountdown() {
     const diff = targetTime - now;
     
     if (diff <= 0) {
-        alert('티켓팅 시간이 지났습니다.');
+        alert(t('alertTicketTimePassed'));
         return;
     }
     
@@ -1960,16 +2297,21 @@ function copyCountdown() {
     const minutesStr = String(minutes).padStart(2, '0');
     const secondsStr = String(seconds).padStart(2, '0');
     
-    const countdownText = `${hoursStr}시간 ${minutesStr}분 ${secondsStr}초`;
+    const countdownText = formatCountdownText(hours, minutes, seconds);
     const targetDate = new Date(`${date}T${time}:00`);
     const dateStr = formatDateKorean(targetDate);
     
-    const shareText = `⏳ 티켓팅 카운트다운\n\n${dateStr} ${time}까지\n남은 시간: ${countdownText}\n\n예매는타이밍으로 정확한 시간 확인! 🎫\n${window.location.href}`;
+    const shareText = t('countdownShareTextWithUrl', {
+        date: dateStr,
+        time,
+        remaining: countdownText,
+        url: window.location.href
+    });
     
     copyToClipboard(shareText).then(() => {
-        alert('카운트다운 정보가 클립보드에 복사되었습니다!');
+        alert(t('alertCountdownCopied'));
     }).catch(() => {
-        alert('복사에 실패했습니다. 다시 시도해주세요.');
+        alert(t('alertCopyFailed'));
     });
 }
 
@@ -2022,7 +2364,7 @@ function toggleFullscreen() {
         document.documentElement.requestFullscreen().then(() => {
             document.body.classList.add('fullscreen-mode');
             const btn = document.getElementById('fullscreenBtn');
-            if (btn) btn.textContent = '🚪 전체화면 종료';
+            if (btn) btn.textContent = t('btnExitFullscreen');
             
             // 서버 시계 섹션만 표시
             const serverTimeSection = document.querySelector('.server-time-section');
@@ -2036,7 +2378,7 @@ function toggleFullscreen() {
         document.exitFullscreen().then(() => {
             document.body.classList.remove('fullscreen-mode');
             const btn = document.getElementById('fullscreenBtn');
-            if (btn) btn.textContent = '📺 전체화면';
+            if (btn) btn.textContent = t('btnFullscreen');
         });
     }
 }
@@ -2058,9 +2400,9 @@ function toggleDarkMode() {
     const btn = document.getElementById('darkModeBtn');
     if (btn) {
         if (document.body.classList.contains('dark-mode')) {
-            btn.textContent = '☀️ 일반 모드';
+            btn.textContent = t('btnLightMode');
         } else {
-            btn.textContent = '🌙 암전 모드';
+            btn.textContent = t('btnDarkMode');
         }
     }
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
@@ -2074,7 +2416,7 @@ function toggleWidgetMode() {
         // 위젯 모드 해제
         document.body.classList.remove('widget-mode');
         const btn = document.getElementById('widgetBtn');
-        if (btn) btn.textContent = '📱 위젯 모드';
+        if (btn) btn.textContent = t('btnWidgetMode');
         
         // body 스타일 초기화
         document.body.style.position = '';
@@ -2093,7 +2435,7 @@ function toggleWidgetMode() {
         // 위젯 모드 활성화
         document.body.classList.add('widget-mode');
         const btn = document.getElementById('widgetBtn');
-        if (btn) btn.textContent = '❌ 위젯 종료';
+        if (btn) btn.textContent = t('btnWidgetExit');
         
         // 전체화면 모드는 해제
         if (document.fullscreenElement) {
@@ -2155,29 +2497,9 @@ function saveChecklist() {
     localStorage.setItem('ticketingChecklist', JSON.stringify(checklist));
 }
 
-// 체크리스트 완료 멘트 배열
-const checklistCompleteMessages = [
-    '🎉 행운을 빕니다! 티켓팅 성공하세요!',
-    '✨ 모든 준비 완료! 이번엔 꼭 성공할 거예요!',
-    '🚀 완벽한 준비! 티켓팅 대박 나세요!',
-    '💪 모든 체크 완료! 당신의 티켓팅을 응원합니다!',
-    '🎫 준비 끝! 이제 티켓팅만 하면 됩니다!',
-    '🌟 완벽한 준비! 좋은 결과 있으시길!',
-    '🔥 모든 준비 완료! 티켓팅 화이팅!',
-    '💯 완벽합니다! 티켓팅 성공 기원합니다!',
-    '🎊 준비 완료! 행운이 함께하길!',
-    '⭐ 모든 체크 완료! 티켓팅 대박 나세요!',
-    '🎁 완벽한 준비! 좋은 결과 기대합니다!',
-    '🌈 모든 준비 끝! 티켓팅 성공하세요!',
-    '🎯 완벽합니다! 이번엔 꼭 성공할 거예요!',
-    '💎 모든 체크 완료! 티켓팅 화이팅!',
-    '🎪 준비 끝! 행운을 빕니다!',
-    '🏆 완벽한 준비! 티켓팅 대박 나세요!',
-    '🎨 모든 준비 완료! 좋은 결과 있으시길!',
-    '🎭 완벽합니다! 티켓팅 성공 기원합니다!',
-    '🎬 준비 끝! 이제 티켓팅만 하면 됩니다!',
-    '🎸 모든 체크 완료! 티켓팅 화이팅!'
-];
+function getChecklistCompleteMessages() {
+    return t('checklistCompleteMessages');
+}
 
 // 체크리스트 완료 확인
 function checkChecklistComplete() {
@@ -2209,6 +2531,7 @@ function checkChecklistComplete() {
     // 모든 체크박스가 체크되었는지 확인
     if (allChecked && checkboxArray.length > 0) {
         // 랜덤 멘트 선택
+        const checklistCompleteMessages = getChecklistCompleteMessages();
         const randomMessage = checklistCompleteMessages[Math.floor(Math.random() * checklistCompleteMessages.length)];
         messageTextEl.textContent = randomMessage;
         

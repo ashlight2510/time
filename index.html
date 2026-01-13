@@ -190,13 +190,20 @@
   <body>
     <div class="container">
       <header>
-        <h1>⏰ 예매는타이밍</h1>
-        <p class="subtitle">티켓팅용 밀리초 단위 정확도 서버시계</p>
+        <h1 data-i18n="heroTitle">⏰ 예매는타이밍</h1>
+        <p class="subtitle" data-i18n="heroSubtitle">
+          티켓팅용 밀리초 단위 정확도 서버시계
+        </p>
+        <div class="lang-switch" role="tablist" aria-label="Language switcher">
+          <button type="button" data-lang="ko" class="active">한국어</button>
+          <button type="button" data-lang="en">English</button>
+        </div>
         <div class="header-controls">
           <button
             class="btn btn-secondary"
             id="fullscreenBtn"
             onclick="toggleFullscreen()"
+            data-i18n="btnFullscreen"
           >
             📺 전체화면
           </button>
@@ -204,6 +211,7 @@
             class="btn btn-secondary"
             id="darkModeBtn"
             onclick="toggleDarkMode()"
+            data-i18n="btnDarkMode"
           >
             🌙 암전 모드
           </button>
@@ -211,6 +219,7 @@
             class="btn btn-secondary"
             id="widgetBtn"
             onclick="toggleWidgetMode()"
+            data-i18n="btnWidgetMode"
           >
             📱 위젯 모드
           </button>
@@ -237,9 +246,12 @@
       <main>
         <!-- 서버 시계 섹션 -->
         <section class="server-time-section">
-          <h2 id="serverTimeTitle">🕐 서버 시계 (KST)</h2>
+          <h2 id="serverTimeTitle" data-i18n="serverTimeTitle">
+            🕐 서버 시계 (KST)
+          </h2>
           <div class="time-selector-wrapper">
             <label for="timeSourceSelect" class="time-selector-label"
+              data-i18n="timeDisplayLabel"
               >시간 표시:</label
             >
             <select
@@ -247,15 +259,20 @@
               class="time-selector"
               onchange="changeTimeSource()"
             >
-              <option value="server">서버 시계 (기본)</option>
-              <option value="melon">멜론</option>
-              <option value="interpark">인터파크</option>
-              <option value="yes24">예스24</option>
+              <option value="server" data-i18n="timeSourceServer">
+                서버 시계 (기본)
+              </option>
+              <option value="melon" data-i18n="timeSourceMelon">멜론</option>
+              <option value="interpark" data-i18n="timeSourceInterpark">
+                인터파크
+              </option>
+              <option value="yes24" data-i18n="timeSourceYes24">예스24</option>
             </select>
             <button
               class="btn btn-primary sync-btn-inline"
               onclick="syncServerTime()"
               title="오차 보정"
+              data-i18n-title="btnSyncTitle"
             >
               🔄
             </button>
@@ -269,7 +286,11 @@
             </div>
           </div>
           <div class="server-time-controls widget-hidden">
-            <button class="btn btn-primary" onclick="syncServerTime()">
+            <button
+              class="btn btn-primary"
+              onclick="syncServerTime()"
+              data-i18n="btnSyncText"
+            >
               🔄 오차 보정
             </button>
           </div>
@@ -277,20 +298,22 @@
 
         <!-- 티켓팅 사이트별 시간 비교 -->
         <section class="platform-time-section">
-          <h2>🎫 티켓팅 사이트별 시간 비교</h2>
+          <h2 data-i18n="platformTitle">🎫 티켓팅 사이트별 시간 비교</h2>
           <div class="platform-list" id="platformList">
             <div class="platform-item">
-              <span class="platform-name">멜론</span>
+              <span class="platform-name" data-i18n="platformMelon">멜론</span>
               <span class="platform-time" id="melonTime">--:--:--.---</span>
               <span class="platform-offset" id="melonOffset">+0.2초</span>
             </div>
             <div class="platform-item">
-              <span class="platform-name">인터파크</span>
+              <span class="platform-name" data-i18n="platformInterpark">
+                인터파크
+              </span>
               <span class="platform-time" id="interparkTime">--:--:--.---</span>
               <span class="platform-offset" id="interparkOffset">-0.1초</span>
             </div>
             <div class="platform-item">
-              <span class="platform-name">예스24</span>
+              <span class="platform-name" data-i18n="platformYes24">예스24</span>
               <span class="platform-time" id="yes24Time">--:--:--.---</span>
               <span class="platform-offset" id="yes24Offset">+0.1초</span>
             </div>
@@ -299,21 +322,33 @@
 
         <!-- 카운트다운 타이머 -->
         <section class="countdown-section">
-          <h2>⏳ 티켓팅 카운트다운</h2>
+          <h2 data-i18n="countdownTitle">⏳ 티켓팅 카운트다운</h2>
           <div class="input-group">
-            <label for="countdownDate">티켓팅 날짜</label>
+            <label for="countdownDate" data-i18n="countdownDateLabel">
+              티켓팅 날짜
+            </label>
             <input type="date" id="countdownDate" />
           </div>
           <div class="input-group">
-            <label for="countdownTime">티켓팅 시간</label>
+            <label for="countdownTime" data-i18n="countdownTimeLabel">
+              티켓팅 시간
+            </label>
             <input type="time" id="countdownTime" />
           </div>
-          <button class="btn btn-primary" onclick="startCountdown()">
+          <button
+            class="btn btn-primary"
+            onclick="startCountdown()"
+            data-i18n="btnStartCountdown"
+          >
             카운트다운 시작
           </button>
           <div class="countdown-display" id="countdownDisplay">
             <div class="countdown-main" id="countdownMain">--:--:--.---</div>
-            <div class="countdown-label" id="countdownLabel">
+            <div
+              class="countdown-label"
+              id="countdownLabel"
+              data-i18n="countdownStartHint"
+            >
               카운트다운을 시작하세요
             </div>
             <div
@@ -324,18 +359,21 @@
               <button
                 class="btn btn-secondary share-btn"
                 onclick="shareCountdownToKakao()"
+                data-i18n="btnShareKakao"
               >
                 💬 카카오톡 공유
               </button>
               <button
                 class="btn btn-secondary share-btn"
                 onclick="shareCountdownToInstagram()"
+                data-i18n="btnShareInstagram"
               >
                 📷 인스타그램 공유
               </button>
               <button
                 class="btn btn-secondary share-btn"
                 onclick="copyCountdown()"
+                data-i18n="btnCopyCountdown"
               >
                 📋 복사하기
               </button>
@@ -345,47 +383,53 @@
 
         <!-- 티켓팅 준비 체크리스트 -->
         <section class="checklist-section">
-          <h2>✅ 티켓팅 준비 체크리스트</h2>
+          <h2 data-i18n="checklistTitle">✅ 티켓팅 준비 체크리스트</h2>
           <div class="checklist-items">
             <label class="checklist-item">
               <input type="checkbox" id="check1" />
-              <span>티켓팅 사이트 로그인 미리 해두기</span>
+              <span data-i18n="check1">티켓팅 사이트 로그인 미리 해두기</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check2" />
-              <span>WiFi 5GHz 또는 LTE 네트워크 사용</span>
+              <span data-i18n="check2">WiFi 5GHz 또는 LTE 네트워크 사용</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check3" />
-              <span>다른 프로그램/앱 종료 (성능 최적화)</span>
+              <span data-i18n="check3">다른 프로그램/앱 종료 (성능 최적화)</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check4" />
-              <span>결제창 팝업 허용 설정 확인</span>
+              <span data-i18n="check4">결제창 팝업 허용 설정 확인</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check5" />
-              <span>결제 수단 미리 등록/확인</span>
+              <span data-i18n="check5">결제 수단 미리 등록/확인</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check6" />
-              <span>자동완성 기능 활성화 (주소, 전화번호 등)</span>
+              <span data-i18n="check6">
+                자동완성 기능 활성화 (주소, 전화번호 등)
+              </span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check7" />
-              <span>쿠키 및 캐시 허용 설정 확인</span>
+              <span data-i18n="check7">쿠키 및 캐시 허용 설정 확인</span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check8" />
-              <span>신용카드 정보 미리 준비 (카드번호, CVC 등)</span>
+              <span data-i18n="check8">
+                신용카드 정보 미리 준비 (카드번호, CVC 등)
+              </span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check9" />
-              <span>티켓팅 사이트 결제 페이지 미리 열어두기</span>
+              <span data-i18n="check9">
+                티켓팅 사이트 결제 페이지 미리 열어두기
+              </span>
             </label>
             <label class="checklist-item">
               <input type="checkbox" id="check10" />
-              <span>될거라는 마음가짐 💪</span>
+              <span data-i18n="check10">될거라는 마음가짐 💪</span>
             </label>
           </div>
           <div class="checklist-complete-message" id="checklistCompleteMessage">
@@ -410,7 +454,7 @@
           © 2025
           <a href="mailto:ashlight2510@gmail.com" class="footer-email"
             >AshLight</a
-          >. All rights reserved.
+          ><span data-i18n="footerRights">. All rights reserved.</span>
         </p>
       </footer>
     </div>
